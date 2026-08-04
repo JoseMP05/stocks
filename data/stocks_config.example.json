@@ -1,0 +1,21 @@
+{
+  "watchlist": [
+    {
+      "ticker": "AAPL",
+      "position": {
+        "avg_cost": 150.0,
+        "invested": 500
+      }
+    },
+    {
+      "ticker": "MSFT",
+      "position": {
+        "avg_cost": 380.0,
+        "shares": 2.5
+      }
+    },
+    {
+      "ticker": "NVDA"
+    }
+  ]
+}

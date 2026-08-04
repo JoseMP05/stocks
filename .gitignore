@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Virtual environment
+venv/
+.venv/
+
+# Environment variables
+.env
+
+# Personal data — positions, API keys and cached results never get committed
+data/stocks_config.json
+data/settings.json
+data/last_results.json
+
+# Legacy generated reports
+stock_report_*.html
+
+# Tooling caches
+.atl/.skill-registry.cache.json
