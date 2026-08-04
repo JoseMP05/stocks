@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block content %}
+<header class="topbar">
+  <h1>Análisis de acciones</h1>
+  <div class="topbar-actions">
+    <button type="button"
+            hx-post="/analyze"
+            hx-target="#results"
+            hx-swap="innerHTML"
+            hx-indicator="#analyze-status">
+      Analizar
+    </button>
+    <span id="analyze-status" class="htmx-indicator">Descargando datos…</span>
+  </div>
+</header>
+
+<main class="layout">
+  <aside class="rail">
+    <h2>Watchlist</h2>
+    <div id="watchlist">
+      {% include "partials/watchlist.html" %}
+    </div>
+
+    <form class="add-form"
+          hx-post="/watchlist"
+          hx-target="#watchlist"
+          hx-swap="innerHTML"
+          hx-on::after-request="this.reset()">
+      <h3>Agregar acción</h3>
+      <label>Ticker
+        <input type="text" name="ticker" required placeholder="AAPL">
+      </label>
+      <label>Precio promedio de compra
+        <input type="number" name="avg_cost" step="any" min="0" placeholder="opcional">
+      </label>
+      <label>Invertido (USD)
+        <input type="number" name="invested" step="any" min="0" placeholder="opcional">
+      </label>
+      <label>Acciones
+        <input type="number" name="shares" step="any" min="0" placeholder="opcional">
+      </label>
+      <button type="submit">Agregar</button>
+    </form>
+  </aside>
+
+  <section id="results" class="results">
+    {% include "partials/results.html" %}
+  </section>
+</main>
+{% endblock %}

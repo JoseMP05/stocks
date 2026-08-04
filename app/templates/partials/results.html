@@ -1,0 +1,25 @@
+{% if not run %}
+  <p class="empty">Sin análisis todavía. Pulsá <strong>Analizar</strong> para descargar los datos.</p>
+{% else %}
+  <p class="run-meta">Última corrida: {{ run.generated_at }}</p>
+
+  {% if run.failures %}
+    <ul class="failures">
+      {% for failure in run.failures %}
+        <li><strong>{{ failure.ticker }}</strong> — {{ failure.reason }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  {% if run.portfolio %}
+    {% with portfolio = run.portfolio %}
+      {% include "partials/portfolio.html" %}
+    {% endwith %}
+  {% endif %}
+
+  {% for result in run.results %}
+    {% with r = result %}
+      {% include "partials/stock_panel.html" %}
+    {% endwith %}
+  {% endfor %}
+{% endif %}

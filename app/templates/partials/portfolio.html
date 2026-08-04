@@ -1,0 +1,15 @@
+<section class="panel portfolio">
+  <h2>Portafolio</h2>
+  <dl class="readout-grid">
+    <div><dt>Invertido</dt><dd>{{ portfolio.invested | money }}</dd></div>
+    <div><dt>Valor actual</dt><dd>{{ portfolio.current_value | money }}</dd></div>
+    <div>
+      <dt>Ganancia / pérdida</dt>
+      <dd class="{{ portfolio.pnl | direction }}">{{ portfolio.pnl | signed_money }}</dd>
+    </div>
+    <div>
+      <dt>Rendimiento</dt>
+      <dd class="{{ portfolio.pnl_pct | direction }}">{{ portfolio.pnl_pct | pct(2, true) }}</dd>
+    </div>
+  </dl>
+</section>

@@ -1,0 +1,103 @@
+/* Provisional styling — replaced by the visual design phase.
+   Just enough structure to verify the backend renders correctly. */
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: #101826;
+  color: #e8edf3;
+  line-height: 1.5;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #243040;
+}
+
+.topbar h1 { font-size: 1.1rem; margin: 0; }
+
+.layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  align-items: start;
+}
+
+.rail { border-right: 1px solid #243040; padding-right: 1.5rem; }
+.rail h2, .rail h3 { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: #7c8ca0; }
+
+.ticker-list { list-style: none; margin: 0; padding: 0; }
+.ticker-item { border-bottom: 1px solid #243040; padding: .75rem 0; }
+.ticker-head { display: flex; justify-content: space-between; align-items: center; }
+.ticker-symbol { font-weight: 700; }
+
+form label { display: block; font-size: .75rem; color: #7c8ca0; margin-bottom: .5rem; }
+form input {
+  display: block;
+  width: 100%;
+  margin-top: .15rem;
+  padding: .35rem .5rem;
+  background: #18222f;
+  border: 1px solid #243040;
+  border-radius: 4px;
+  color: inherit;
+}
+
+button {
+  padding: .4rem .8rem;
+  background: #f2a93b;
+  color: #101826;
+  border: 0;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.link-danger { background: none; color: #e5614f; padding: 0; font-weight: 400; }
+
+.panel {
+  background: #18222f;
+  border: 1px solid #243040;
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.stock-head { display: flex; justify-content: space-between; gap: 1rem; }
+.stock-head h2 { margin: 0; font-size: 1.6rem; }
+.company, .sector { margin: .15rem 0; color: #7c8ca0; font-size: .85rem; }
+.quote { text-align: right; }
+.price { margin: 0; font-size: 1.6rem; font-weight: 700; }
+
+.readout-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .75rem; margin: 0; }
+.readout-rows > div { display: flex; justify-content: space-between; gap: 1rem; padding: .35rem 0; border-bottom: 1px solid #243040; }
+dt { font-size: .75rem; color: #7c8ca0; margin: 0; }
+dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem; }
+
+.up { color: #4fd1a5; }
+.down { color: #e5614f; }
+.flat { color: #7c8ca0; }
+
+.empty, .run-meta { color: #7c8ca0; font-size: .85rem; }
+.failures { color: #e5614f; font-size: .85rem; }
+.news ul { list-style: none; padding: 0; }
+.news a { color: #f2a93b; }
+.news-date { color: #7c8ca0; font-size: .75rem; margin-left: .5rem; }
+
+.htmx-indicator { opacity: 0; font-size: .8rem; color: #7c8ca0; }
+.htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; }
+
+@media (max-width: 800px) {
+  .layout { grid-template-columns: 1fr; }
+  .rail { border-right: 0; padding-right: 0; }
+  .two-col { grid-template-columns: 1fr; }
+}

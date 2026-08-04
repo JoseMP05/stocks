@@ -1,0 +1,120 @@
+{% set ind = r.indicators %}
+{% set f = r.fundamentals %}
+
+<article class="panel stock">
+  <header class="stock-head">
+    <div>
+      <h2 class="ticker-symbol">{{ r.ticker }}</h2>
+      <p class="company">{{ f.company }}</p>
+      <p class="sector">{{ f.sector }} · {{ f.industry }}</p>
+    </div>
+    <div class="quote">
+      <p class="price">{{ r.price | money }}</p>
+      <p class="change {{ r.change_pct | direction }}">{{ r.change_pct | pct(2, true) }} hoy</p>
+      <p class="verdict verdict-{{ r.verdict | lower }}">{{ r.verdict }}</p>
+    </div>
+  </header>
+
+  <p class="signal-tally">
+    Alcistas {{ r.bull_score | num(1) }} · Bajistas {{ r.bear_score | num(1) }}
+  </p>
+
+  {% if r.position %}
+    {% set p = r.position %}
+    <section class="position">
+      <h3>Mi posición</h3>
+      <dl class="readout-grid">
+        <div><dt>Acciones</dt><dd>{{ p.shares | num(4) }}</dd></div>
+        <div><dt>Precio promedio</dt><dd>{{ p.avg_cost | money }}</dd></div>
+        <div><dt>Invertido</dt><dd>{{ p.invested | money }}</dd></div>
+        <div><dt>Valor actual</dt><dd>{{ p.current_value | money }}</dd></div>
+        <div>
+          <dt>P&L</dt>
+          <dd class="{{ p.pnl | direction }}">
+            {{ p.pnl | signed_money }} ({{ p.pnl_pct | pct(1, true) }})
+          </dd>
+        </div>
+      </dl>
+      <p class="breakeven">
+        {% if p.to_breakeven > 0 %}
+          Necesita subir <strong>{{ p.to_breakeven | pct(1) }}</strong> para recuperar la inversión.
+        {% else %}
+          Break-even superado en <strong>{{ (p.to_breakeven | abs) | pct(1) }}</strong>.
+        {% endif %}
+      </p>
+    </section>
+  {% endif %}
+
+  <div class="two-col">
+    <section>
+      <h3>Análisis técnico</h3>
+      <dl class="readout-rows">
+        <div><dt>RSI (14)</dt><dd>{{ ind.rsi | num(1) }} — {{ ind.rsi_signal }}</dd></div>
+        <div><dt>MACD</dt><dd>{{ ind.macd | num(3) }} — {{ ind.macd_signal }}</dd></div>
+        <div><dt>Bollinger</dt><dd>{{ ind.bb_signal }}</dd></div>
+        {% for label, value, above in [
+            ('SMA 20', ind.sma20, ind.above_sma20),
+            ('SMA 50', ind.sma50, ind.above_sma50),
+            ('SMA 200', ind.sma200, ind.above_sma200)
+        ] %}
+          <div>
+            <dt>{{ label }}</dt>
+            <dd class="{% if above is none %}flat{% elif above %}up{% else %}down{% endif %}">
+              {% if above is none %}sin datos{% else %}{{ 'sobre' if above else 'bajo' }} {{ value | money }}{% endif %}
+            </dd>
+          </div>
+        {% endfor %}
+        <div><dt>Volumen</dt><dd>{{ ind.volume_ratio | num(1) }}× promedio 20d</dd></div>
+      </dl>
+    </section>
+
+    <section>
+      <h3>Fundamentos</h3>
+      <dl class="readout-rows">
+        <div><dt>Cap. de mercado</dt><dd>{{ f.market_cap | money }}</dd></div>
+        <div><dt>P/E trailing</dt><dd>{{ f.pe | num(2, '×') }}</dd></div>
+        <div><dt>P/E forward</dt><dd>{{ f.forward_pe | num(2, '×') }}</dd></div>
+        <div><dt>Revenue</dt><dd>{{ f.revenue | money }}</dd></div>
+        <div><dt>Crecimiento revenue</dt><dd>{{ f.revenue_growth | ratio_pct }}</dd></div>
+        <div><dt>Margen bruto</dt><dd>{{ f.gross_margin | ratio_pct }}</dd></div>
+        <div><dt>EPS (TTM)</dt><dd>{{ f.eps | money }}</dd></div>
+        <div><dt>Beta</dt><dd>{{ f.beta | num(2, '×') }}</dd></div>
+        <div>
+          <dt>Máx. 52 semanas</dt>
+          <dd>{{ f.week52_high | money }} <small>{{ f.dist_from_high | pct(1, true) }}</small></dd>
+        </div>
+        <div>
+          <dt>Mín. 52 semanas</dt>
+          <dd>{{ f.week52_low | money }} <small>{{ f.dist_from_low | pct(1, true) }}</small></dd>
+        </div>
+        <div>
+          <dt>Target analistas</dt>
+          <dd>
+            {{ f.target_price | money }}
+            {% if f.target_price %}
+              {% set upside = (f.target_price - r.price) / r.price * 100 %}
+              <small class="{{ upside | direction }}">{{ upside | pct(1, true) }} potencial</small>
+            {% endif %}
+          </dd>
+        </div>
+        <div><dt>Recomendación</dt><dd>{{ f.recommendation | recommendation }}</dd></div>
+      </dl>
+    </section>
+  </div>
+
+  <section class="news">
+    <h3>Noticias recientes</h3>
+    {% if r.news %}
+      <ul>
+        {% for item in r.news %}
+          <li>
+            <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.title }}</a>
+            <span class="news-date">{{ item.date }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="empty">Sin noticias recientes disponibles.</p>
+    {% endif %}
+  </section>
+</article>

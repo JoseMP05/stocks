@@ -1,0 +1,36 @@
+{% if not watchlist %}
+  <p class="empty">Todavía no seguís ninguna acción. Agregá la primera abajo.</p>
+{% else %}
+  <ul class="ticker-list">
+    {% for item in watchlist %}
+      <li class="ticker-item">
+        <div class="ticker-head">
+          <span class="ticker-symbol">{{ item.ticker }}</span>
+          <button type="button"
+                  class="link-danger"
+                  hx-delete="/watchlist/{{ item.ticker }}"
+                  hx-target="#watchlist"
+                  hx-swap="innerHTML"
+                  hx-confirm="¿Quitar {{ item.ticker }} de la watchlist?">
+            Quitar
+          </button>
+        </div>
+
+        <form class="position-form"
+              hx-post="/watchlist/{{ item.ticker }}"
+              hx-target="#watchlist"
+              hx-swap="innerHTML">
+          <label>Precio prom.
+            <input type="number" name="avg_cost" step="any" min="0"
+                   value="{{ item.position.avg_cost if item.position else '' }}">
+          </label>
+          <label>Invertido
+            <input type="number" name="invested" step="any" min="0"
+                   value="{{ item.position.invested | round(2) if item.position else '' }}">
+          </label>
+          <button type="submit">Guardar</button>
+        </form>
+      </li>
+    {% endfor %}
+  </ul>
+{% endif %}
