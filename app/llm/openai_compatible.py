@@ -43,4 +43,6 @@ class OpenAICompatibleProvider:
             raise LLMError(f"La API key de {self._label} fue rechazada.") from exc
         except openai.APIError as exc:
             raise LLMError(f"{self._label} no pudo responder: {exc}") from exc
+        except Exception as exc:  # noqa: BLE001 — a provider fault must never 500 the UI
+            raise LLMError(f"Fallo al llamar a {self._label}: {exc}") from exc
         return response.choices[0].message.content or ""

@@ -25,7 +25,8 @@ def get_provider(settings: LLMSettings) -> LLMProvider:
             label="OpenRouter",
             base_url=_OPENROUTER_BASE_URL,
             # Optional per OpenRouter's docs — used only for their leaderboards.
-            default_headers={"X-OpenRouter-Title": "Análisis de Acciones"},
+            # ASCII only: HTTP header values are encoded as ascii by httpx.
+            default_headers={"X-OpenRouter-Title": "Stock Analysis"},
         )
 
     return OpenAICompatibleProvider(

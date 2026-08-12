@@ -24,4 +24,6 @@ class AnthropicProvider:
             raise LLMError("La API key de Anthropic fue rechazada.") from exc
         except anthropic.APIError as exc:
             raise LLMError(f"Anthropic no pudo responder: {exc}") from exc
+        except Exception as exc:  # noqa: BLE001 — a provider fault must never 500 the UI
+            raise LLMError(f"Fallo al llamar a Anthropic: {exc}") from exc
         return "".join(block.text for block in response.content if block.type == "text")
