@@ -69,3 +69,4 @@ data/                        # watchlist, settings y cache — todo gitignored s
 - Boton para desactivar ciertas acciones sin tener que removerlas
 - Añadir bandas de bollinger y volumen al grafico
 - Dockerizar proyecto
+- El Llm está teniendo en cuenta las noticias?
