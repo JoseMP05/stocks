@@ -1,10 +1,13 @@
 {% extends "base.html" %}
+{% import "partials/_analysis_prose.html" as md %}
 
 {% block content %}
 <header class="topbar">
-  <h1>Análisis de acciones</h1>
+  <h1 class="wordmark">Aná<span class="wordmark-bar" aria-hidden="true">|</span>lisis</h1>
+
   <div class="topbar-actions">
     <button type="button"
+            class="btn btn-primary"
             hx-post="/analyze"
             hx-target="#results"
             hx-swap="innerHTML"
@@ -12,6 +15,7 @@
       Analizar
     </button>
     <button type="button"
+            class="btn"
             hx-post="/analyze/llm"
             hx-target="#llm-panel"
             hx-swap="innerHTML"
@@ -19,57 +23,83 @@
       Interpretar con IA
     </button>
     <button type="button"
+            class="btn btn-icon"
+            aria-label="Configuración de IA"
             hx-get="/settings"
             hx-target="#settings-panel"
             hx-swap="innerHTML">
-      ⚙
+      <span aria-hidden="true">⚙</span>
     </button>
+  </div>
+
+  <p class="topbar-status" role="status">
     <span id="analyze-status" class="htmx-indicator">Descargando datos…</span>
     <span id="llm-status" class="htmx-indicator">Consultando al modelo…</span>
-  </div>
+  </p>
 </header>
 
-<div id="settings-panel"></div>
-
 <main class="layout">
-  <aside class="rail">
-    <h2>Watchlist</h2>
+  <aside class="rail" aria-labelledby="rail-title">
+    <h2 class="label" id="rail-title">Watchlist</h2>
+
     <div id="watchlist">
       {% include "partials/watchlist.html" %}
     </div>
 
+    {#- Only resets on success. Resetting unconditionally is what made a
+        rejected submit look like a silent no-op: the fields emptied as if
+        something had been saved. -#}
     <form class="add-form"
           hx-post="/watchlist"
           hx-target="#watchlist"
           hx-swap="innerHTML"
-          hx-on::after-request="this.reset()">
-      <h3>Agregar acción</h3>
+          hx-on::after-request="if (!document.getElementById('watchlist-error').textContent.trim()) this.reset()">
+      <h3 class="label">Agregar acción</h3>
+
+      <p id="watchlist-error" class="form-error is-empty" role="alert"></p>
+
       <label>Ticker
-        <input type="text" name="ticker" required placeholder="AAPL">
+        <input type="text" name="ticker" required placeholder="AAPL" autocomplete="off">
       </label>
-      <label>Precio promedio de compra
-        <input type="number" name="avg_cost" step="any" min="0" placeholder="opcional">
-      </label>
-      <label>Invertido (USD)
-        <input type="number" name="invested" step="any" min="0" placeholder="opcional">
-      </label>
-      <label>Acciones
-        <input type="number" name="shares" step="any" min="0" placeholder="opcional">
-      </label>
-      <button type="submit">Agregar</button>
+
+      <fieldset class="position-fields">
+        <legend>Si ya la compraste</legend>
+        <label>Precio promedio de compra
+          <input type="number" name="avg_cost" step="any" min="0" placeholder="opcional">
+        </label>
+        <div class="either-or">
+          <label>Invertido (USD)
+            <input type="number" name="invested" step="any" min="0" placeholder="opcional">
+          </label>
+          <span class="either-or-sep" aria-hidden="true">o</span>
+          <label>Acciones
+            <input type="number" name="shares" step="any" min="0" placeholder="opcional">
+          </label>
+        </div>
+        <p class="field-hint">Con el precio de compra hay que cargar también el monto invertido o la cantidad de acciones. Dejá todo vacío para solo seguir la acción.</p>
+      </fieldset>
+
+      <button type="submit" class="btn">Agregar</button>
     </form>
   </aside>
 
-  <section id="results" class="results">
-    {% include "partials/results.html" %}
-  </section>
-</main>
+  <div class="column">
+    <div id="settings-panel"></div>
 
-<section id="llm-panel" class="panel llm">
-  {% if run and run.llm_analysis %}
-    <div class="llm-analysis">{{ run.llm_analysis }}</div>
-  {% else %}
-    <p class="empty">Corré un análisis y después pulsá <strong>Interpretar con IA</strong>.</p>
-  {% endif %}
-</section>
+    <section id="results" class="results" aria-label="Resultados del análisis">
+      {% include "partials/results.html" %}
+    </section>
+
+    <section class="panel llm" aria-labelledby="llm-title">
+      <h2 class="label" id="llm-title">Interpretación del modelo</h2>
+      <div id="llm-panel">
+        {% if run and run.llm_analysis %}
+          {{ md.prose(run.llm_analysis, run.results) }}
+        {% else %}
+          <p class="empty">Corré un análisis y después pulsá <strong>Interpretar con IA</strong>.</p>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+</main>
 {% endblock %}

@@ -1,108 +1,1213 @@
-/* Provisional styling — replaced by the visual design phase.
-   Just enough structure to verify the backend renders correctly. */
+/* Análisis — "instrumento de precisión".
 
-* { box-sizing: border-box; }
+   One deliberate dark world: this is a bench instrument housing, not a
+   themeable document, so there is no light theme and no light-dark().
 
-body {
-  margin: 0;
-  font-family: system-ui, sans-serif;
-  background: #101826;
-  color: #e8edf3;
-  line-height: 1.5;
+   The --hairline / --edge split is load-bearing. WCAG 1.4.11 exempts purely
+   decorative dividers from the 3:1 rule but requires it for UI component
+   boundaries and for graphics you need in order to understand the content.
+   So --hairline is only ever a decorative rule, and --edge (3.29:1 on the
+   panel) carries every control border and every dial scale mark. */
+
+@layer reset, base, components;
+
+@layer reset {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  body,
+  h1,
+  h2,
+  h3,
+  h4,
+  p,
+  dl,
+  dd,
+  dt,
+  figure,
+  figcaption,
+  table {
+    margin: 0;
+  }
+
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  button,
+  input,
+  select {
+    font: inherit;
+    color: inherit;
+  }
+
+  img,
+  svg {
+    max-inline-size: 100%;
+  }
 }
 
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid #243040;
+@layer base {
+  :root {
+    color-scheme: dark;
+
+    /* Tier 1 — literal palette. Contrast-audited; do not tweak. */
+    --housing: #151110;
+    --panel: #1f1917;
+    --raised: #2a2220;
+    --hairline: #3a2f28;
+    --edge: #7a6860;
+    --calib: #f5b13c;
+    --up: #5ad3a4;
+    --down: #ff7a6b;
+    --mute: #a2938a;
+    --readout: #f2ece7;
+
+    /* Tier 2 — semantic */
+    --ground: var(--housing);
+    --surface: var(--panel);
+    --surface-over: var(--raised);
+    --rule: var(--hairline); /* decorative only */
+    --border: var(--edge); /* UI boundaries + scale marks */
+    --ink: var(--readout);
+    --ink-quiet: var(--mute);
+    --accent: var(--calib);
+
+    /* Bahnschrift is Windows' DIN — the typeface of actual gauges. */
+    --font-display:
+      "Space Grotesk", Bahnschrift, "DIN Alternate", system-ui, sans-serif;
+    --font-ui:
+      Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+    --font-data:
+      "IBM Plex Mono", "Cascadia Mono", ui-monospace, Consolas, monospace;
+
+    --step--1: 0.75rem;
+    --step-0: 0.875rem;
+    --step-1: 1.0625rem;
+    --step-2: 1.5rem;
+    --step-3: clamp(1.75rem, 1.2rem + 1.6vw, 2.25rem);
+
+    --gap: 1.5rem;
+    --radius: 3px;
+    --tap: 1.5rem; /* WCAG 2.5.8 floor: 24px */
+
+    /* Needle settle: ~11% overshoot, then damping, like a real coil movement. */
+    --ease-settle: linear(
+      0,
+      0.045 3.4%,
+      0.176 6.9%,
+      0.63 14%,
+      0.884 18%,
+      1.036 21.5%,
+      1.098 24.2%,
+      1.11 26.5%,
+      1.093 29.2%,
+      1.02 34.6%,
+      0.973 38.7%,
+      0.958 42.1%,
+      0.966 46.2%,
+      1.006 55.4%,
+      1.016 61.5%,
+      0.995 74.1%,
+      1.002 85.7%,
+      1
+    );
+  }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    font-size: var(--step-0);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden; /* nothing on this page may scroll the page sideways */
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-weight: 500;
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+
+  :where(a) {
+    color: var(--accent);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 1px;
+  }
+
+  /* Every digit on this page is a meter reading: fixed width, never dances. */
+  .price,
+  .change,
+  .rows dd,
+  .strip dd,
+  .tick-label,
+  .dial-net b,
+  .spark-range,
+  .breakeven b,
+  .run-meta,
+  .holding .val,
+  .sym {
+    font-family: var(--font-data);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+
+  /* Units are screen-printed next to the value, not part of it. */
+  .u {
+    color: var(--ink-quiet);
+    font-size: 0.82em;
+    padding-inline: 0.08em;
+  }
+
+  .up {
+    color: var(--up);
+  }
+  .down {
+    color: var(--down);
+  }
+  .flat {
+    color: var(--ink-quiet);
+  }
+
+  .empty,
+  .disclaimer {
+    color: var(--ink-quiet);
+  }
+
+  .visually-hidden {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
 }
 
-.topbar h1 { font-size: 1.1rem; margin: 0; }
+@layer components {
+  /* ---- Engraved section labels ---------------------------------------- */
+  .label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-family: var(--font-ui);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-quiet);
+  }
+  .label::after {
+    content: "";
+    flex: 1;
+    border-block-start: 1px solid var(--rule);
+  }
 
-.layout {
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 1.5rem;
-  padding: 1.5rem;
-  align-items: start;
-}
+  /* ---- Controls -------------------------------------------------------- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-block-size: 2.25rem;
+    min-inline-size: var(--tap);
+    padding: 0.4rem 0.9rem;
+    font-weight: 500;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition:
+      border-color 0.15s,
+      color 0.15s,
+      background 0.15s;
+  }
+  .btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .btn-primary {
+    color: var(--housing);
+    background: var(--accent);
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+  .btn-primary:hover:not(:disabled) {
+    color: var(--housing);
+    background: color-mix(in oklab, var(--accent), white 12%);
+  }
+  .btn-icon {
+    inline-size: 2.25rem;
+    padding: 0;
+  }
+  .btn-quiet {
+    min-block-size: var(--tap);
+    padding: 0.2rem 0.55rem;
+    font-size: var(--step--1);
+    color: var(--ink-quiet);
+  }
 
-.rail { border-right: 1px solid #243040; padding-right: 1.5rem; }
-.rail h2, .rail h3 { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: #7c8ca0; }
+  /* `inline-size: 100%` + `min-inline-size: 0` are load-bearing: a number
+     input carries an intrinsic width near 177px, which is wider than the
+     rail's grid tracks and made it punch out of the watchlist card. */
+  input,
+  select {
+    inline-size: 100%;
+    min-inline-size: 0;
+    min-block-size: 2.25rem;
+    padding: 0.35rem 0.55rem;
+    color: var(--ink);
+    background: var(--ground);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  input::placeholder {
+    color: var(--ink-quiet);
+    opacity: 1;
+  }
 
-.ticker-list { list-style: none; margin: 0; padding: 0; }
-.ticker-item { border-bottom: 1px solid #243040; padding: .75rem 0; }
-.ticker-head { display: flex; justify-content: space-between; align-items: center; }
-.ticker-symbol { font-weight: 700; }
+  label {
+    display: grid;
+    gap: 0.25rem;
+    min-inline-size: 0;
+    font-size: var(--step--1);
+    color: var(--ink-quiet);
+  }
 
-form label { display: block; font-size: .75rem; color: #7c8ca0; margin-bottom: .5rem; }
-form input {
-  display: block;
-  width: 100%;
-  margin-top: .15rem;
-  padding: .35rem .5rem;
-  background: #18222f;
-  border: 1px solid #243040;
-  border-radius: 4px;
-  color: inherit;
-}
+  @media (pointer: coarse) {
+    .btn,
+    input,
+    select {
+      min-block-size: 2.75rem;
+    }
+    .btn-quiet {
+      min-block-size: 2.75rem;
+    }
+  }
 
-button {
-  padding: .4rem .8rem;
-  background: #f2a93b;
-  color: #101826;
-  border: 0;
-  border-radius: 4px;
-  font-weight: 600;
-  cursor: pointer;
-}
+  /* ---- Chrome ---------------------------------------------------------- */
+  .topbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.75rem var(--gap);
+    padding: 1.125rem clamp(1rem, 3vw, 2rem);
+    border-block-end: 1px solid var(--rule);
+    background: var(--ground);
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 2;
+  }
 
-.link-danger { background: none; color: #e5614f; padding: 0; font-weight: 400; }
+  .wordmark {
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  /* Decorative only: aria-hidden in the markup keeps it out of the name,
+     so screen readers say "Análisis", not "Aná bar lisis". */
+  .wordmark-bar {
+    color: var(--accent);
+  }
 
-.panel {
-  background: #18222f;
-  border: 1px solid #243040;
-  border-radius: 8px;
-  padding: 1.25rem;
-  margin-bottom: 1.25rem;
-}
+  .topbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-inline-start: auto;
+  }
+  .topbar-status {
+    font-size: var(--step--1);
+    color: var(--ink-quiet);
+  }
+  .htmx-indicator {
+    display: none;
+  }
+  .htmx-request .htmx-indicator,
+  .htmx-request.htmx-indicator {
+    display: inline;
+  }
 
-.stock-head { display: flex; justify-content: space-between; gap: 1rem; }
-.stock-head h2 { margin: 0; font-size: 1.6rem; }
-.company, .sector { margin: .15rem 0; color: #7c8ca0; font-size: .85rem; }
-.quote { text-align: right; }
-.price { margin: 0; font-size: 1.6rem; font-weight: 700; }
+  .run-meta {
+    font-size: var(--step--1);
+    color: var(--ink-quiet);
+  }
 
-.readout-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .75rem; margin: 0; }
-.readout-rows > div { display: flex; justify-content: space-between; gap: 1rem; padding: .35rem 0; border-bottom: 1px solid #243040; }
-dt { font-size: .75rem; color: #7c8ca0; margin: 0; }
-dd { margin: 0; font-variant-numeric: tabular-nums; }
+  /* ---- Layout ---------------------------------------------------------- */
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 16rem) minmax(0, 1fr);
+    gap: var(--gap);
+    align-items: start;
+    padding: var(--gap) clamp(1rem, 3vw, 2rem) 4rem;
+    max-inline-size: 92rem;
+    margin-inline: auto;
+  }
 
-.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem; }
+  /* The watchlist outgrows the viewport once there are a handful of tickers,
+     so it scrolls inside itself rather than stranding the "agregar" form
+     below the fold with no way to reach it. */
+  .rail {
+    position: sticky;
+    inset-block-start: 5rem;
+    display: grid;
+    gap: 1rem;
+    min-inline-size: 0;
+    align-content: start;
+    max-block-size: calc(100dvh - 6.5rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-inline-end: 0.4rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
 
-.up { color: #4fd1a5; }
-.down { color: #e5614f; }
-.flat { color: #7c8ca0; }
+  .column,
+  .results {
+    display: grid;
+    gap: var(--gap);
+    min-inline-size: 0;
+  }
 
-.empty, .run-meta { color: #7c8ca0; font-size: .85rem; }
-.failures { color: #e5614f; font-size: .85rem; }
-.news ul { list-style: none; padding: 0; }
-.news a { color: #f2a93b; }
-.news-date { color: #7c8ca0; font-size: .75rem; margin-left: .5rem; }
+  @media (max-width: 60rem) {
+    .layout {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .rail {
+      position: static;
+      max-block-size: none;
+      overflow-y: visible;
+      padding-inline-end: 0;
+    }
+  }
 
-.htmx-indicator { opacity: 0; font-size: .8rem; color: #7c8ca0; }
-.htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; }
+  /* ---- Panels ---------------------------------------------------------- */
+  /* Panels are separated by their surface and by air, not by an outline.
+     Nesting outlined boxes inside outlined boxes is what made the layout
+     read as a grid of cells rather than as instrument panels. */
+  .panel {
+    display: grid;
+    gap: 1.25rem;
+    padding: 1.5rem;
+    background: var(--surface);
+    border-radius: var(--radius);
+  }
 
-.llm-analysis { white-space: pre-wrap; }
-.llm-error { color: #e5614f; }
-.settings select { width: 100%; margin-top: .15rem; padding: .35rem .5rem; background: #18222f; border: 1px solid #243040; border-radius: 4px; color: inherit; }
-.saved-notice { color: #4fd1a5; font-size: .85rem; }
+  /* ---- Rail ------------------------------------------------------------ */
+  .ticker-list {
+    display: grid;
+    gap: 0.4rem;
+  }
+  .ticker-item {
+    display: grid;
+    gap: 0.5rem;
+    padding: 0.7rem 0.8rem;
+    background: var(--surface);
+    border-radius: var(--radius);
+  }
+  /* The accent edge marks a real distinction — this ticker is a holding,
+     not just a watch entry — so it is the one rule the card keeps. Keyed on
+     a class, not on the form's presence: the form renders for every ticker,
+     since that is how you open a position. */
+  .ticker-item.is-holding {
+    border-inline-start: 2px solid var(--accent);
+  }
+  .ticker-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.5rem;
+  }
+  .ticker-head .sym {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+  .ticker-head .btn-quiet {
+    margin-inline-start: auto;
+  }
+  .note {
+    flex-basis: 100%;
+    font-size: 0.6875rem;
+    color: var(--ink-quiet);
+  }
 
-@media (max-width: 800px) {
-  .layout { grid-template-columns: 1fr; }
-  .rail { border-right: 0; padding-right: 0; }
-  .two-col { grid-template-columns: 1fr; }
+  .position-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(6rem, 1fr));
+    gap: 0.5rem;
+    align-items: end;
+  }
+
+  /* Errors report what went wrong and how to fix it, in place, next to the
+     control that caused them. `is-empty` keeps the slot out of the flow so
+     it does not reserve blank space when there is nothing to say. */
+  .form-error {
+    padding: 0.55rem 0.7rem;
+    font-size: var(--step--1);
+    color: var(--ink);
+    background: color-mix(in oklab, var(--down), transparent 88%);
+    border-inline-start: 2px solid var(--down);
+    border-radius: var(--radius);
+    text-wrap: pretty;
+  }
+  .form-error.is-empty { display: none; }
+
+  .position-fields {
+    display: grid;
+    gap: 0.6rem;
+    margin: 0;
+    padding: 0.75rem 0.8rem;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+  }
+  .position-fields legend {
+    padding-inline: 0.35rem;
+    font-size: var(--step--1);
+    color: var(--ink-quiet);
+  }
+  .either-or {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: end;
+    gap: 0.5rem;
+  }
+  .either-or-sep {
+    padding-block-end: 0.55rem;
+    font-size: var(--step--1);
+    color: var(--ink-quiet);
+  }
+  .field-hint {
+    font-size: var(--step--1);
+    color: var(--ink-quiet);
+    text-wrap: pretty;
+  }
+
+  .add-form {
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  /* ---- Portfolio: one readout strip, not a grid of stat tiles ---------- */
+  .strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 2rem;
+  }
+  .strip > div {
+    display: grid;
+    gap: 0.1rem;
+    padding-inline-start: 1rem;
+    border-inline-start: 1px solid var(--rule);
+  }
+  .strip > div:first-child {
+    padding-inline-start: 0;
+    border-inline-start: 0;
+  }
+  .strip dt {
+    font-size: 0.6875rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-quiet);
+  }
+  .strip dd {
+    font-size: var(--step-1);
+  }
+  .strip-lead dd {
+    font-size: var(--step-2);
+  }
+
+  /* ---- Stock panel ----------------------------------------------------- */
+  .stock {
+    container-type: inline-size;
+    gap: 1.25rem;
+  }
+
+  .stock-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: start;
+    gap: 0.75rem 1.5rem;
+  }
+  .ticker {
+    font-family: var(--font-display);
+    font-size: var(--step-3);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    line-height: 1.1;
+  }
+  .company {
+    font-size: 0.9375rem;
+  }
+  .sector {
+    font-size: var(--step--1);
+    color: var(--ink-quiet);
+  }
+  .stock-quote {
+    text-align: end;
+  }
+  .price {
+    font-size: var(--step-3);
+    line-height: 1.1;
+  }
+  .change {
+    font-size: 0.8125rem;
+  }
+  .change .arrow {
+    font-size: 0.7em;
+    padding-inline-end: 0.25em;
+  }
+
+  /* Set apart by a recessed ground rather than by rules above and below —
+     it reads as the instrument bay of the panel instead of a boxed row. */
+  .instruments {
+    display: grid;
+    grid-template-columns: minmax(13rem, 20rem) minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    background: var(--ground);
+    border-radius: var(--radius);
+  }
+  /* Panel-relative, not viewport-relative: the panel is what got narrow. */
+  @container (max-width: 40rem) {
+    .instruments {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .stock-quote {
+      text-align: start;
+    }
+  }
+
+  /* ---- Signature: the calibrated dial ---------------------------------- */
+  .dial {
+    display: grid;
+    gap: 0.5rem;
+    justify-items: center;
+  }
+  .dial-face {
+    inline-size: 100%;
+    max-inline-size: 17rem;
+    block-size: auto;
+  }
+
+  /* The face itself is a graphic you need in order to read the value, so it
+     takes --edge, not the decorative --hairline. */
+  .dial-arc {
+    fill: none;
+    stroke: var(--border);
+    stroke-width: 1.25;
+  }
+  /* The NEUTRAL band, between the real ±1 decision thresholds. Drawn as a
+     thin inlay rather than a heavy cap: at 3.5px it read as a grey lid on
+     the gauge and crowded the −1 / 0 / +1 numerals underneath it. */
+  .dial-arc-neutral {
+    stroke: var(--ink-quiet);
+    stroke-width: 1.5;
+    stroke-opacity: 0.75;
+  }
+
+  /* Scale marks are graphics required to read the instrument, so they take
+     --edge / --mute, never --hairline. Major vs minor differ by length and
+     stroke-width, not by colour. */
+  .tick {
+    stroke: var(--border);
+    stroke-width: 1;
+  }
+  .tick-major {
+    stroke: var(--ink-quiet);
+    stroke-width: 1.5;
+  }
+  .tick-threshold {
+    stroke: var(--ink-quiet);
+    stroke-width: 2;
+  }
+
+  .tick-label {
+    fill: var(--ink-quiet);
+    font-family: var(--font-data);
+    font-size: 8px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+  .dial-end {
+    fill: var(--ink-quiet);
+    font-family: var(--font-ui);
+    font-size: 7.5px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+  }
+
+  .dial-needle {
+    stroke: var(--accent);
+    stroke-width: 2;
+    stroke-linecap: round;
+    transform-box: view-box;
+    transform-origin: 110px 88px;
+    rotate: var(--needle-angle, 0deg);
+    animation: needle-settle 1.4s var(--ease-settle) both;
+  }
+  .dial-hub {
+    fill: var(--ground);
+    stroke: var(--accent);
+    stroke-width: 1.5;
+  }
+
+  @keyframes needle-settle {
+    from {
+      rotate: 0deg;
+    }
+  }
+
+  /* Scoped, not a global animation kill switch: the needle simply appears
+     at its final angle. */
+  @media (prefers-reduced-motion: reduce) {
+    .dial-needle {
+      animation: none;
+    }
+  }
+
+  .dial-caption {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: baseline;
+    gap: 0.25rem 0.75rem;
+    text-align: center;
+  }
+  .dial-verdict {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    font-size: 0.8125rem;
+  }
+  .dial-net {
+    font-size: var(--step--1);
+    color: var(--ink-quiet);
+  }
+  .dial-net b {
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .dial-split {
+    flex-basis: 100%;
+    font-size: 0.6875rem;
+    color: var(--ink-quiet);
+  }
+
+  /* ---- Sparkline ------------------------------------------------------- */
+  .spark {
+    display: grid;
+    gap: 0.35rem;
+    min-inline-size: 0;
+  }
+  /* Uniform scaling. preserveAspectRatio="none" would distort the endpoint
+     dot and the "mi costo" label along with the curve. */
+  .spark svg {
+    inline-size: 100%;
+    block-size: auto;
+    aspect-ratio: 300 / 76;
+    overflow: visible;
+  }
+  .spark-line {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 1.25;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+  }
+  .spark-end {
+    fill: var(--accent);
+  }
+  .spark-cost {
+    stroke: var(--ink-quiet);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+    vector-effect: non-scaling-stroke;
+  }
+  .spark-key {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .spark-key-mark {
+    inline-size: 1.25rem;
+    block-size: 0;
+    border-block-start: 1px dashed var(--ink-quiet);
+  }
+  .spark-caption {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.25rem 1rem;
+    font-size: 0.6875rem;
+    color: var(--ink-quiet);
+    letter-spacing: 0.06em;
+  }
+
+  /* ---- Quiet readouts -------------------------------------------------- */
+  .position {
+    display: grid;
+    gap: 0.75rem;
+  }
+  .breakeven {
+    font-size: 0.8125rem;
+    color: var(--ink-quiet);
+  }
+  .breakeven b {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  .readouts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: 1.5rem;
+  }
+  .readouts > section {
+    display: grid;
+    gap: 0.5rem;
+    align-content: start;
+  }
+
+  .rows > div {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    padding-block: 0.35rem;
+  }
+  .rows > div:not(:last-child) {
+    border-block-end: 1px solid var(--rule);
+  }
+  .rows dt {
+    font-size: 0.8125rem;
+    color: var(--ink-quiet);
+  }
+  .rows dd {
+    font-size: 0.8125rem;
+    text-align: end;
+  }
+  .rows dd small {
+    display: block;
+    font-family: var(--font-ui);
+    font-size: 0.6875rem;
+    color: var(--ink-quiet);
+  }
+  .rows dd small.up {
+    color: var(--up);
+  }
+  .rows dd small.down {
+    color: var(--down);
+  }
+
+  /* ---- News ------------------------------------------------------------ */
+  .news {
+    display: grid;
+    gap: 0.75rem;
+  }
+  .news-list {
+    display: grid;
+    gap: 1rem;
+  }
+  .news-list li {
+    display: grid;
+    gap: 0.25rem;
+    justify-items: start;
+  }
+  .news-title {
+    font-weight: 500;
+    overflow-wrap: anywhere;
+    text-decoration: none;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+  .news-title:hover {
+    color: var(--accent);
+  }
+  .news-summary {
+    max-inline-size: 72ch;
+    font-size: 0.8125rem;
+    color: var(--ink-quiet);
+    text-wrap: pretty;
+  }
+  .news-date {
+    font-family: var(--font-data);
+    font-size: 0.6875rem;
+    color: var(--ink-quiet);
+  }
+
+  .failures {
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.8125rem;
+    color: var(--ink-quiet);
+    background: var(--surface);
+    border-inline-start: 2px solid var(--down);
+    border-radius: var(--radius);
+  }
+
+  /* ---- Interpretation & settings --------------------------------------- */
+  .llm {
+    border-inline-start: 2px solid var(--accent);
+    /* Makes the panel the reference for .reading's container query. */
+    container-type: inline-size;
+    scroll-margin-block-start: 5rem;
+  }
+  /* Jumping from the index must not park the heading under the sticky topbar. */
+  .prose :is(h3, h4) { scroll-margin-block-start: 5.5rem; }
+  /* ---- Model report: index + prose ------------------------------------- */
+  /* Prose keeps a readable measure; the space that opens beside it carries
+     the jump index instead of sitting empty. */
+  .reading {
+    display: grid;
+    grid-template-columns: minmax(0, 68ch) minmax(0, 15rem);
+    gap: clamp(1.5rem, 4vw, 3.5rem);
+    align-items: start;
+  }
+  /* Index sits second visually but first in the DOM, so keyboard and screen
+     reader users meet the table of contents before the 10,000px of prose it
+     navigates. Explicit placement rather than `order`, which would leave the
+     two out of step. */
+  .prose { grid-column: 1; grid-row: 1; }
+  .reading-index { grid-column: 2; grid-row: 1; }
+
+  .reading-index {
+    position: sticky;
+    inset-block-start: 5rem;
+    display: grid;
+    gap: 0.6rem;
+    max-block-size: calc(100dvh - 7rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .reading-index ol {
+    display: grid;
+    gap: 0.1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .reading-index a {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-block-size: var(--tap);
+    padding: 0.35rem 0.5rem;
+    font-size: var(--step--1);
+    color: var(--ink-quiet);
+    text-decoration: none;
+    border-inline-start: 2px solid transparent;
+    border-radius: var(--radius);
+  }
+  .reading-index a:hover {
+    color: var(--ink);
+    background: var(--ground);
+    border-inline-start-color: var(--accent);
+  }
+  .reading-index-title { overflow-wrap: anywhere; }
+  .reading-index-meta {
+    font-family: var(--font-data);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.6875rem;
+    white-space: nowrap;
+  }
+
+  /* Panel-relative: what got narrow is the panel, not necessarily the window.
+     Declared after the rules above so it actually overrides them — same
+     specificity means source order decides. */
+  @container (max-width: 52rem) {
+    .reading { grid-template-columns: minmax(0, 1fr); }
+    .prose, .reading-index { grid-column: 1; grid-row: auto; }
+    .reading-index {
+      position: static;
+      max-block-size: none;
+      overflow-y: visible;
+      padding-block-end: 0.75rem;
+      border-block-end: 1px solid var(--rule);
+    }
+  }
+
+  /* Prose rendered from the model's Markdown. Long unbroken tokens scroll
+     inside their own block rather than pushing the page sideways. */
+  .prose {
+    min-inline-size: 0;
+    max-inline-size: 68ch;
+    overflow-wrap: break-word;
+  }
+  .prose > * + * { margin-block-start: 0.9rem; }
+  .prose h3 {
+    margin-block-start: 2.25rem;
+    padding-block-end: 0.4rem;
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border-block-end: 1px solid var(--rule);
+  }
+  .prose h4 {
+    margin-block-start: 1.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-quiet);
+  }
+  .prose > :first-child { margin-block-start: 0; }
+  .prose :is(h3, h4):focus-visible { outline-offset: 4px; }
+
+  .prose ul, .prose ol { padding-inline-start: 1.1rem; }
+  .prose ul { list-style: none; }
+  .prose ul > li { position: relative; }
+  /* A calibration tick, not a bullet — same vocabulary as the dial scale. */
+  .prose ul > li::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: -1.1rem;
+    inset-block-start: 0.62em;
+    inline-size: 0.5rem;
+    border-block-start: 1px solid var(--border);
+  }
+  .prose ol { list-style: decimal; }
+  .prose ol::marker, .prose ol > li::marker {
+    color: var(--ink-quiet);
+    font-family: var(--font-data);
+  }
+  .prose li + li { margin-block-start: 0.35rem; }
+
+  .prose strong { color: var(--ink); font-weight: 600; }
+  .prose em { color: var(--ink); }
+  .prose a { overflow-wrap: anywhere; }
+  .prose blockquote {
+    padding-inline-start: 0.9rem;
+    border-inline-start: 2px solid var(--border);
+    color: var(--ink-quiet);
+  }
+  .prose code {
+    padding: 0.1em 0.3em;
+    font-family: var(--font-data);
+    font-size: 0.9em;
+    background: var(--ground);
+    border-radius: 2px;
+  }
+  .prose pre {
+    padding: 0.9rem;
+    overflow-x: auto;
+    background: var(--ground);
+    border-radius: var(--radius);
+  }
+  .prose pre code { padding: 0; background: none; }
+  /* Tables get their own scroll container so a wide one never widens the page. */
+  .prose :is(table) { inline-size: 100%; border-collapse: collapse; }
+  .prose :is(th, td) {
+    padding: 0.4rem 0.6rem;
+    text-align: start;
+    border-block-end: 1px solid var(--rule);
+  }
+  .prose th { font-size: var(--step--1); color: var(--ink-quiet); font-weight: 600; }
+  .prose hr { border: 0; border-block-start: 1px solid var(--rule); }
+  .llm-error {
+    color: var(--down);
+  }
+  .disclaimer {
+    font-size: var(--step--1);
+  }
+
+  .settings-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: 0.75rem;
+    align-items: end;
+  }
+  .saved-notice {
+    font-size: var(--step--1);
+    color: var(--up);
+  }
+
+  /* ---- Glossary -------------------------------------------------------- */
+  /* The trigger must disappear into whatever text it sits in — a term inside
+     an uppercase, letter-spaced <dt> has to look exactly like a plain <dt>.
+     `font: inherit` covers family/size/weight but NOT these two, so they are
+     inherited explicitly.
+
+     No min target size on purpose: WCAG 2.5.8 exempts targets whose size is
+     constrained by the line-height of surrounding non-target text, which is
+     exactly this case. Forcing 24px here inflated every label row instead. */
+  .gloss {
+    display: inline;
+    font: inherit;
+    text-transform: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    text-align: start;
+    padding: 0;
+    background: none;
+    border: 0;
+    cursor: help;
+  }
+  .gloss-text {
+    text-decoration: underline dotted;
+    text-underline-offset: 3px;
+    text-decoration-color: var(--border);
+  }
+  .gloss-mark {
+    display: inline-grid;
+    place-items: center;
+    inline-size: 1.05em;
+    block-size: 1.05em;
+    margin-inline-start: 0.25em;
+    font-size: 0.7em;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--ink-quiet);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+  }
+  .gloss:hover .gloss-text,
+  .gloss:hover .gloss-mark {
+    color: var(--accent);
+  }
+  .gloss:hover .gloss-mark {
+    border-color: var(--accent);
+  }
+
+  /* The popover sits inside the same <dt>/<p> as its trigger, so it would
+     otherwise inherit that context's uppercase, letter-spacing and alignment. */
+  .gloss-pop {
+    inline-size: min(26rem, calc(100vw - 2rem));
+    padding: 0.9rem 1rem;
+    color: var(--ink);
+    background: var(--surface-over);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 24px -8px rgb(0 0 0 / 0.7);
+    font-family: var(--font-ui);
+    font-size: 0.8125rem;
+    font-weight: 400;
+    line-height: 1.5;
+    text-align: start;
+    text-transform: none;
+    letter-spacing: normal;
+  }
+  /* Children are <span>s so the popover stays valid phrasing content; they
+     carry their own block display rather than relying on the element type. */
+  .gloss-pop-term,
+  .gloss-pop-short,
+  .gloss-pop-body {
+    display: block;
+    text-transform: none;
+    letter-spacing: normal;
+  }
+  .gloss-pop-term {
+    font-family: var(--font-display);
+    font-size: 0.9375rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin-block-end: 0.35rem;
+    text-wrap: balance;
+  }
+  .gloss-pop-short {
+    color: var(--accent);
+    margin-block-end: 0.5rem;
+  }
+  .gloss-pop-body {
+    color: var(--ink-quiet);
+    text-wrap: pretty;
+  }
+
+  /* Anchor positioning is progressive enhancement. Without it the popover
+     falls back to the browser default — centred, still fully functional. */
+  @supports (anchor-name: --x) {
+    .gloss-pop {
+      position: fixed;
+      margin: 0;
+      inset: auto;
+      position-area: block-end span-inline-end;
+      position-try-fallbacks: flip-block, flip-inline;
+      margin-block-start: 0.35rem;
+    }
+  }
+
+  /* ---- High contrast --------------------------------------------------- */
+  /* SVG paint is not remapped by forced-colors, so the dial and sparkline
+     are mapped to system colours by hand. State is never carried only by a
+     background-image or a box-shadow, so nothing else needs a substitute. */
+  @media (forced-colors: active) {
+    .panel,
+    .ticker-item,
+    .failures,
+    .gloss-pop,
+    .btn,
+    input,
+    select {
+      border: 1px solid CanvasText;
+    }
+    .label::after,
+    .rows > div:not(:last-child),
+    .strip > div {
+      border-color: CanvasText;
+    }
+    .dial-arc,
+    .tick {
+      stroke: CanvasText;
+    }
+    .dial-arc-neutral {
+      stroke: CanvasText;
+      stroke-opacity: 1;
+    }
+    .dial-needle {
+      stroke: Highlight;
+    }
+    .dial-hub {
+      fill: Canvas;
+      stroke: Highlight;
+    }
+    .tick-label,
+    .dial-end {
+      fill: CanvasText;
+    }
+    .spark-key-mark {
+      border-color: CanvasText;
+    }
+    .spark-line,
+    .spark-cost {
+      stroke: CanvasText;
+    }
+    .spark-end {
+      fill: CanvasText;
+    }
+    .spark-area {
+      fill: none;
+    }
+    .gloss-mark {
+      border-color: CanvasText;
+    }
+  }
 }

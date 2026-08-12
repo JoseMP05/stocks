@@ -1,0 +1,38 @@
+{#
+  Glossary term macro.
+
+  `scope` namespaces the popover id so the same term can appear in several
+  panels on one page without colliding. `anchor-name` / `position-anchor` are
+  set inline because they must be unique per pair; the positioning rules that
+  consume them live in app.css behind an @supports guard, so browsers without
+  anchor positioning simply fall back to the centred popover default.
+#}
+{% macro term(key, scope, label=None) %}
+  {%- set entry = glossary.get(key) -%}
+  {%- if entry -%}
+    {%- set pid = 'gl-' ~ (scope | slug) ~ '-' ~ (key | slug) -%}
+    <button type="button"
+            class="gloss"
+            popovertarget="{{ pid }}"
+            style="anchor-name: --{{ pid }}">
+      <span class="gloss-text">{{ label or entry.term }}</span
+      ><span class="gloss-mark" aria-hidden="true">?</span
+      ><span class="visually-hidden">, ver definición</span>
+    </button>
+    {#- Every element here is phrasing content on purpose. A term can appear
+        inside a <p> (the break-even sentence) or a <dt>, and a block-level
+        <div>/<p> inside a <p> makes the parser close the paragraph early,
+        orphaning the rest of the sentence onto its own lines. Spans styled
+        as blocks render identically and stay valid anywhere. -#}
+    <span popover id="{{ pid }}" class="gloss-pop" style="position-anchor: --{{ pid }}">
+      {#- Deliberately not a heading: the term is already the trigger's
+          accessible name, and a heading here would skip a level wherever the
+          popover sits under an h2 rather than an h3. -#}
+      <span class="gloss-pop-term">{{ entry.term }}</span>
+      <span class="gloss-pop-short">{{ entry.short }}</span>
+      <span class="gloss-pop-body">{{ entry.body }}</span>
+    </span>
+  {%- else -%}
+    {{ label or key }}
+  {%- endif -%}
+{% endmacro %}

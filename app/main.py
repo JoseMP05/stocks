@@ -20,27 +20,59 @@ app = FastAPI(title="Análisis de Acciones")
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
+class PositionInputError(ValueError):
+    """A position the user typed that we can't make sense of.
+
+    Carries a message meant to be read by the person who typed it, not a
+    validator dump. Raised instead of HTTPException because htmx discards the
+    body of a 4xx: the message has to come back inside a 200 to be seen.
+    """
+
+
+def _blank(value: str | None) -> bool:
+    return not value or not value.strip()
+
+
 def _parse_position(
     avg_cost: str | None, invested: str | None, shares: str | None
 ) -> Position | None:
     """Build a Position from raw form fields, or None when left blank."""
-    if not avg_cost or not avg_cost.strip():
+    if _blank(avg_cost):
+        # Size without a purchase price cannot be valued. Saying so beats
+        # silently dropping what they typed.
+        if not (_blank(invested) and _blank(shares)):
+            raise PositionInputError(
+                "Falta el precio promedio de compra para poder calcular la posición."
+            )
         return None
+    if _blank(invested) and _blank(shares):
+        raise PositionInputError(
+            "Indicá también el monto invertido o la cantidad de acciones: "
+            "con el precio de compra solo no se puede calcular la posición."
+        )
     try:
         return Position(
             avg_cost=float(avg_cost),
-            invested=float(invested) if invested and invested.strip() else None,
-            shares=float(shares) if shares and shares.strip() else None,
+            invested=float(invested) if not _blank(invested) else None,
+            shares=float(shares) if not _blank(shares) else None,
         )
     except (ValueError, ValidationError) as exc:
-        raise HTTPException(status_code=422, detail=f"Posición inválida: {exc}") from exc
+        raise PositionInputError(
+            "Revisá los números de la posición: tienen que ser mayores a cero."
+        ) from exc
 
 
-def _watchlist_response(request: Request) -> HTMLResponse:
+def _watchlist_response(request: Request, error: str | None = None) -> HTMLResponse:
+    """Render the watchlist, plus an out-of-band slot carrying any error.
+
+    Always a 200: htmx does not swap 4xx responses, so an error returned as a
+    status code disappears without a trace — which is exactly how the add form
+    used to fail silently.
+    """
     return templates.TemplateResponse(
         request=request,
-        name="partials/watchlist.html",
-        context={"watchlist": storage.load_watchlist().watchlist},
+        name="partials/watchlist_response.html",
+        context={"watchlist": storage.load_watchlist().watchlist, "error": error},
     )
 
 
@@ -71,8 +103,17 @@ def create_ticker(
         item = WatchlistItem(
             ticker=ticker, position=_parse_position(avg_cost, invested, shares)
         )
-    except ValidationError as exc:
-        raise HTTPException(status_code=422, detail=f"Ticker inválido: {exc}") from exc
+    except PositionInputError as exc:
+        return _watchlist_response(request, error=str(exc))
+    except ValidationError:
+        return _watchlist_response(request, error="Escribí un ticker válido, por ejemplo AAPL.")
+
+    if any(w.ticker == item.ticker for w in storage.load_watchlist().watchlist):
+        # add_ticker replaces, which would silently wipe an existing position.
+        return _watchlist_response(
+            request,
+            error=f"{item.ticker} ya está en la watchlist. Editá su posición desde la tarjeta.",
+        )
     storage.add_ticker(item)
     return _watchlist_response(request)
 
@@ -85,9 +126,12 @@ def edit_ticker(
     invested: str = Form(default=""),
     shares: str = Form(default=""),
 ) -> HTMLResponse:
-    item = WatchlistItem(
-        ticker=ticker, position=_parse_position(avg_cost, invested, shares)
-    )
+    try:
+        item = WatchlistItem(
+            ticker=ticker, position=_parse_position(avg_cost, invested, shares)
+        )
+    except PositionInputError as exc:
+        return _watchlist_response(request, error=f"{ticker.upper()}: {exc}")
     storage.update_ticker(ticker, item)
     return _watchlist_response(request)
 
@@ -137,7 +181,7 @@ def analyze_llm(request: Request) -> HTMLResponse:
         return templates.TemplateResponse(
             request=request,
             name="partials/llm_panel.html",
-            context={"analysis": None, "error": str(exc)},
+            context={"analysis": None, "error": str(exc), "results": run.results},
         )
 
     run.llm_analysis = analysis
@@ -145,7 +189,7 @@ def analyze_llm(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
         request=request,
         name="partials/llm_panel.html",
-        context={"analysis": analysis, "error": None},
+        context={"analysis": analysis, "error": None, "results": run.results},
     )
 
 

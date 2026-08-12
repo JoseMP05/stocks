@@ -1,11 +1,11 @@
-<section class="panel settings">
-  <h2>Configuración de IA</h2>
+<section class="panel settings" aria-labelledby="settings-title">
+  <h2 class="label" id="settings-title">Configuración de IA</h2>
 
   {% if saved %}
-    <p class="saved-notice">Guardado.</p>
+    <p class="saved-notice" role="status">Guardado.</p>
   {% endif %}
 
-  <form hx-post="/settings" hx-target="closest .settings" hx-swap="outerHTML">
+  <form class="settings-form" hx-post="/settings" hx-target="closest .settings" hx-swap="outerHTML">
     <label>Proveedor
       <select name="provider">
         <option value="anthropic" {% if settings.provider == "anthropic" %}selected{% endif %}>Anthropic</option>
@@ -21,6 +21,6 @@
              placeholder="{% if settings.api_key %}••••••••{% else %}sk-…{% endif %}"
              autocomplete="off">
     </label>
-    <button type="submit">Guardar</button>
+    <button type="submit" class="btn btn-primary">Guardar</button>
   </form>
 </section>

@@ -187,11 +187,17 @@ def _build_news(raw_news: list) -> list[NewsItem]:
         content = entry.get("content", entry)
         url_obj = content.get("canonicalUrl", {})
         url = url_obj.get("url") if isinstance(url_obj, dict) else None
+        # `summary` is plain text; the sibling `description` field carries
+        # provider HTML, so it is deliberately not used here.
+        summary = (content.get("summary") or "").strip()
+        if len(summary) > 320:
+            summary = summary[:317].rstrip() + "…"
         items.append(
             NewsItem(
                 title=content.get("title") or "Sin título",
                 url=url or entry.get("link") or "#",
                 date=(content.get("pubDate") or "")[:10],
+                summary=summary,
             )
         )
     return items

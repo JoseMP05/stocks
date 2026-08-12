@@ -92,6 +92,9 @@ class NewsItem(BaseModel):
     title: str
     url: str = "#"
     date: str = ""
+    # Plain-text blurb from the provider. Empty when the entry has none, or
+    # when the run predates this field — cached runs stay loadable.
+    summary: str = ""
 
 
 class Indicators(BaseModel):

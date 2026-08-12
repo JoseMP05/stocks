@@ -1,7 +1,8 @@
+{% import "partials/_analysis_prose.html" as md %}
 {% if error %}
-  <p class="llm-error">{{ error }}</p>
+  <p class="llm-error" role="alert">{{ error }}</p>
 {% elif analysis %}
-  <div class="llm-analysis">{{ analysis }}</div>
+  {{ md.prose(analysis, results) }}
 {% else %}
   <p class="empty">Corré un análisis y después pulsá <strong>Interpretar con IA</strong>.</p>
 {% endif %}

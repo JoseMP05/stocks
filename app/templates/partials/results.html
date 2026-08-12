@@ -1,10 +1,10 @@
 {% if not run %}
   <p class="empty">Sin análisis todavía. Pulsá <strong>Analizar</strong> para descargar los datos.</p>
 {% else %}
-  <p class="run-meta">Última corrida: {{ run.generated_at }}</p>
+  <p class="run-meta">Última medición: {{ run.generated_at }}</p>
 
   {% if run.failures %}
-    <ul class="failures">
+    <ul class="failures" aria-label="Tickers que fallaron">
       {% for failure in run.failures %}
         <li><strong>{{ failure.ticker }}</strong> — {{ failure.reason }}</li>
       {% endfor %}

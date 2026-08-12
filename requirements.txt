@@ -11,3 +11,8 @@ numpy>=1.26
 
 anthropic>=0.40
 openai>=1.55
+
+# Renders the model's Markdown answer. Declared explicitly rather than relied
+# on as a transitive dependency of the provider SDKs. CommonMark with
+# html=False, so raw HTML in model output is escaped instead of executed.
+markdown-it-py>=3.0

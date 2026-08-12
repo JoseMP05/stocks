@@ -1,0 +1,37 @@
+{#
+  Renders the model's Markdown answer as a document, not a wall of text.
+
+  The answer runs to tens of thousands of characters with one top-level
+  section per ticker, so the half of the panel that used to sit empty carries
+  a jump index instead. Prose stays at a readable measure; the index gives the
+  document the only affordance a 10,000px scroll actually needs.
+#}
+{% macro prose(analysis, results=None) %}
+  {%- set rows = results or [] -%}
+  {%- set doc = render_analysis(analysis, rows | map(attribute='ticker') | list) -%}
+
+  <div class="reading">
+    {% if doc.sections | length > 1 %}
+      <nav class="reading-index" aria-labelledby="reading-index-title">
+        <h3 class="label" id="reading-index-title">En este informe</h3>
+        <ol>
+          {% for section in doc.sections %}
+            {%- set r = rows | selectattr('ticker', 'equalto', section.ticker) | first -%}
+            <li>
+              <a href="#{{ section.anchor }}">
+                <span class="reading-index-title">{{ section.title }}</span>
+                {% if r %}
+                  <span class="reading-index-meta {{ r.change_pct | direction }}">{{ r.change_pct | pct(1, true) }}</span>
+                {% endif %}
+              </a>
+            </li>
+          {% endfor %}
+        </ol>
+      </nav>
+    {% endif %}
+
+    <div class="prose">{{ doc.html | safe }}</div>
+  </div>
+
+  <p class="disclaimer">Este análisis es informativo y no constituye asesoría financiera.</p>
+{% endmacro %}

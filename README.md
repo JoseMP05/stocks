@@ -61,3 +61,11 @@ app/
 └── static/                  # css/js
 data/                        # watchlist, settings y cache — todo gitignored salvo el .example
 ```
+
+## To Do
+
+- Integrar importación de acciones e historial desde XTB
+- Pie chart de acciones
+- Boton para desactivar ciertas acciones sin tener que removerlas
+- Añadir bandas de bollinger y volumen al grafico
+- Dockerizar proyecto

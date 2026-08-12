@@ -1,0 +1,14 @@
+{#
+  Response wrapper for every write to the watchlist.
+
+  The list swaps into #watchlist as usual; the error slot rides along as an
+  out-of-band swap so a failed submit can report itself without replacing the
+  watchlist with an error message. Rendered empty on success, which clears any
+  message left over from a previous attempt.
+#}
+{% include "partials/watchlist.html" %}
+
+<p id="watchlist-error"
+   class="form-error{% if not error %} is-empty{% endif %}"
+   role="alert"
+   hx-swap-oob="true">{{ error if error }}</p>
