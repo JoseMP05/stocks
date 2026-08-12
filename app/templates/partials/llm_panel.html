@@ -1,0 +1,7 @@
+{% if error %}
+  <p class="llm-error">{{ error }}</p>
+{% elif analysis %}
+  <div class="llm-analysis">{{ analysis }}</div>
+{% else %}
+  <p class="empty">Corré un análisis y después pulsá <strong>Interpretar con IA</strong>.</p>
+{% endif %}

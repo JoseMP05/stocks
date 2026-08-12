@@ -11,9 +11,25 @@
             hx-indicator="#analyze-status">
       Analizar
     </button>
+    <button type="button"
+            hx-post="/analyze/llm"
+            hx-target="#llm-panel"
+            hx-swap="innerHTML"
+            hx-indicator="#llm-status">
+      Interpretar con IA
+    </button>
+    <button type="button"
+            hx-get="/settings"
+            hx-target="#settings-panel"
+            hx-swap="innerHTML">
+      ⚙
+    </button>
     <span id="analyze-status" class="htmx-indicator">Descargando datos…</span>
+    <span id="llm-status" class="htmx-indicator">Consultando al modelo…</span>
   </div>
 </header>
+
+<div id="settings-panel"></div>
 
 <main class="layout">
   <aside class="rail">
@@ -48,4 +64,12 @@
     {% include "partials/results.html" %}
   </section>
 </main>
+
+<section id="llm-panel" class="panel llm">
+  {% if run and run.llm_analysis %}
+    <div class="llm-analysis">{{ run.llm_analysis }}</div>
+  {% else %}
+    <p class="empty">Corré un análisis y después pulsá <strong>Interpretar con IA</strong>.</p>
+  {% endif %}
+</section>
 {% endblock %}

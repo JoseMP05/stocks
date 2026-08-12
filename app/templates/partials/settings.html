@@ -1,5 +1,26 @@
-{# Placeholder — wired up in the LLM phase. #}
 <section class="panel settings">
-  <h2>Configuración</h2>
-  <p class="empty">La configuración del proveedor de IA se habilita en la próxima fase.</p>
+  <h2>Configuración de IA</h2>
+
+  {% if saved %}
+    <p class="saved-notice">Guardado.</p>
+  {% endif %}
+
+  <form hx-post="/settings" hx-target="closest .settings" hx-swap="outerHTML">
+    <label>Proveedor
+      <select name="provider">
+        <option value="anthropic" {% if settings.provider == "anthropic" %}selected{% endif %}>Anthropic</option>
+        <option value="openai" {% if settings.provider == "openai" %}selected{% endif %}>OpenAI</option>
+        <option value="openrouter" {% if settings.provider == "openrouter" %}selected{% endif %}>OpenRouter</option>
+      </select>
+    </label>
+    <label>Modelo
+      <input type="text" name="model" value="{{ settings.model }}" required>
+    </label>
+    <label>API key
+      <input type="password" name="api_key"
+             placeholder="{% if settings.api_key %}••••••••{% else %}sk-…{% endif %}"
+             autocomplete="off">
+    </label>
+    <button type="submit">Guardar</button>
+  </form>
 </section>

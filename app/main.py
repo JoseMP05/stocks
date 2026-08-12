@@ -10,7 +10,10 @@ from pydantic import ValidationError
 from app import storage
 from app.analysis.market import run_analysis
 from app.config import STATIC_DIR
-from app.models import Position, WatchlistItem
+from app.llm import get_provider
+from app.llm.errors import LLMError
+from app.llm.prompt import build_prompt
+from app.models import LLMSettings, Position, WatchlistItem
 from app.templating import templates
 
 app = FastAPI(title="Análisis de Acciones")
@@ -113,6 +116,39 @@ def analyze(request: Request) -> HTMLResponse:
     )
 
 
+# ── LLM interpretation ───────────────────────────────────────────────────────
+
+@app.post("/analyze/llm", response_class=HTMLResponse)
+def analyze_llm(request: Request) -> HTMLResponse:
+    """Interpret the last cached analysis run with the configured LLM.
+
+    Declared `def` rather than `async def`: the provider SDKs block on
+    network I/O, same reasoning as `/analyze` with yfinance.
+    """
+    run = storage.load_last_run()
+    if run is None or not run.results:
+        raise HTTPException(status_code=400, detail="Corré un análisis antes de interpretarlo con IA.")
+
+    settings = storage.load_settings()
+    provider = get_provider(settings)
+    try:
+        analysis = provider.analyze(build_prompt(run))
+    except LLMError as exc:
+        return templates.TemplateResponse(
+            request=request,
+            name="partials/llm_panel.html",
+            context={"analysis": None, "error": str(exc)},
+        )
+
+    run.llm_analysis = analysis
+    storage.save_last_run(run)
+    return templates.TemplateResponse(
+        request=request,
+        name="partials/llm_panel.html",
+        context={"analysis": analysis, "error": None},
+    )
+
+
 # ── settings ─────────────────────────────────────────────────────────────────
 
 @app.get("/settings", response_class=HTMLResponse)
@@ -121,4 +157,27 @@ def get_settings(request: Request) -> HTMLResponse:
         request=request,
         name="partials/settings.html",
         context={"settings": storage.load_settings(), "saved": False},
+    )
+
+
+@app.post("/settings", response_class=HTMLResponse)
+def save_settings(
+    request: Request,
+    provider: str = Form(...),
+    model: str = Form(...),
+    api_key: str = Form(default=""),
+) -> HTMLResponse:
+    current = storage.load_settings()
+    # Blank key in the form means "keep the one already saved" — the field
+    # is rendered masked, so an empty submit must not wipe it.
+    resolved_key = api_key.strip() or current.api_key
+    try:
+        settings = LLMSettings(provider=provider, model=model, api_key=resolved_key)
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=f"Configuración inválida: {exc}") from exc
+    storage.save_settings(settings)
+    return templates.TemplateResponse(
+        request=request,
+        name="partials/settings.html",
+        context={"settings": settings, "saved": True},
     )

@@ -96,6 +96,11 @@ dd { margin: 0; font-variant-numeric: tabular-nums; }
 .htmx-indicator { opacity: 0; font-size: .8rem; color: #7c8ca0; }
 .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; }
 
+.llm-analysis { white-space: pre-wrap; }
+.llm-error { color: #e5614f; }
+.settings select { width: 100%; margin-top: .15rem; padding: .35rem .5rem; background: #18222f; border: 1px solid #243040; border-radius: 4px; color: inherit; }
+.saved-notice { color: #4fd1a5; font-size: .85rem; }
+
 @media (max-width: 800px) {
   .layout { grid-template-columns: 1fr; }
   .rail { border-right: 0; padding-right: 0; }

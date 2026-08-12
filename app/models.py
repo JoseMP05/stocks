@@ -48,8 +48,8 @@ class Watchlist(BaseModel):
 
 
 class LLMSettings(BaseModel):
-    provider: Literal["anthropic", "openai"] = "anthropic"
-    model: str = "claude-sonnet-5"
+    provider: Literal["anthropic", "openai", "openrouter"] = "anthropic"
+    model: str = "openai/gpt-5.6-luna"
     api_key: str = ""
 
 
