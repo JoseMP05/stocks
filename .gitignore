@@ -20,4 +20,4 @@ data/last_results.json
 stock_report_*.html
 
 # Tooling caches
-.atl/.skill-registry.cache.json
+.atl/
