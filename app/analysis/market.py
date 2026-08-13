@@ -53,11 +53,37 @@ def _downsample(series: pd.Series, points: int = SPARKLINE_POINTS) -> list[float
     values = [v for v in (_clean(x) for x in series.tolist()) if v is not None]
     if len(values) <= points:
         return values
-    step = len(values) / points
-    return [values[int(i * step)] for i in range(points)]
+    # (n-1)/(points-1), not n/points: the latter's last sampled index is
+    # `int((points-1) * n/points)`, which lands short of `n-1` (e.g. 248 of
+    # 251 at n=252/points=80) — the chart would always lag the real last
+    # close by a few sessions instead of ending on it.
+    step = (len(values) - 1) / (points - 1)
+    return [values[round(i * step)] for i in range(points)]
 
 
-def _build_indicators(closes: pd.Series, volumes: pd.Series, price: float) -> tuple[Indicators, float, float]:
+def _sample_indices(n: int, points: int = SPARKLINE_POINTS) -> list[int]:
+    """Positions for a shared x-grid, using the same step arithmetic as `_downsample`.
+
+    Bollinger, the SMAs and volume all need to land on the exact same x
+    position as `price_series` — sampling each series independently (and
+    dropping its own NaNs first, like `_downsample` does) would shift their
+    warm-up periods relative to each other and misalign every layer.
+    """
+    if n <= points:
+        return list(range(n))
+    step = (n - 1) / (points - 1)
+    return [round(i * step) for i in range(points)]
+
+
+def _downsample_at(series: pd.Series, indices: list[int]) -> list[float | None]:
+    """Sample a series at fixed positions, keeping `None` for NaN warm-up runs."""
+    values = series.tolist()
+    return [_clean(values[i]) for i in indices]
+
+
+def _build_indicators(
+    closes: pd.Series, volumes: pd.Series, price: float
+) -> tuple[Indicators, float, float, dict[str, pd.Series]]:
     """Compute indicators and the weighted bull/bear tally.
 
     Returns the indicators plus the bull and bear scores. Indicators that are
@@ -67,16 +93,19 @@ def _build_indicators(closes: pd.Series, volumes: pd.Series, price: float) -> tu
     """
     rsi_series = calc_rsi(closes)
     macd_series, signal_series, _ = calc_macd(closes)
-    bb_upper, _, bb_lower = calc_bollinger(closes)
+    bb_upper, bb_middle, bb_lower = calc_bollinger(closes)
+    sma20_series = closes.rolling(20).mean()
+    sma50_series = closes.rolling(50).mean()
+    sma200_series = closes.rolling(200).mean()
 
     rsi = _clean(rsi_series.iloc[-1])
     macd = _clean(macd_series.iloc[-1])
     macd_signal_line = _clean(signal_series.iloc[-1])
     upper = _clean(bb_upper.iloc[-1])
     lower = _clean(bb_lower.iloc[-1])
-    sma20 = _clean(closes.rolling(20).mean().iloc[-1])
-    sma50 = _clean(closes.rolling(50).mean().iloc[-1])
-    sma200 = _clean(closes.rolling(200).mean().iloc[-1])
+    sma20 = _clean(sma20_series.iloc[-1])
+    sma50 = _clean(sma50_series.iloc[-1])
+    sma200 = _clean(sma200_series.iloc[-1])
 
     avg_volume = _clean(volumes.rolling(20).mean().iloc[-1])
     last_volume = _clean(volumes.iloc[-1])
@@ -147,7 +176,13 @@ def _build_indicators(closes: pd.Series, volumes: pd.Series, price: float) -> tu
         above_sma200=above_sma200,
         volume_ratio=volume_ratio,
     )
-    return indicators, bull, bear
+    series = {
+        "bb_upper": bb_upper,
+        "bb_lower": bb_lower,
+        "sma20": sma20_series,
+        "sma50": sma50_series,
+    }
+    return indicators, bull, bear, series
 
 
 def _build_fundamentals(info: dict, ticker: str, price: float) -> Fundamentals:
@@ -240,7 +275,7 @@ def analyze_ticker(item: WatchlistItem) -> AnalysisResult:
     price = float(closes.iloc[-1])
     previous = float(closes.iloc[-2])
 
-    indicators, bull, bear = _build_indicators(closes, volumes, price)
+    indicators, bull, bear, series = _build_indicators(closes, volumes, price)
 
     if bull > bear + 1:
         verdict = "ALCISTA"
@@ -259,6 +294,8 @@ def analyze_ticker(item: WatchlistItem) -> AnalysisResult:
     except Exception:
         news = []
 
+    indices = _sample_indices(len(closes))
+
     return AnalysisResult(
         ticker=ticker,
         price=price,
@@ -271,6 +308,11 @@ def analyze_ticker(item: WatchlistItem) -> AnalysisResult:
         bear_score=bear,
         verdict=verdict,
         price_series=_downsample(closes),
+        bb_upper_series=_downsample_at(series["bb_upper"], indices),
+        bb_lower_series=_downsample_at(series["bb_lower"], indices),
+        sma20_series=_downsample_at(series["sma20"], indices),
+        sma50_series=_downsample_at(series["sma50"], indices),
+        volume_series=_downsample_at(volumes, indices),
     )
 
 

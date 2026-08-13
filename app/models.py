@@ -136,6 +136,16 @@ class AnalysisResult(BaseModel):
     verdict: Literal["ALCISTA", "BAJISTA", "NEUTRAL"]
     # Downsampled 1y close series, feeds the sparkline in the UI.
     price_series: list[float] = Field(default_factory=list)
+    # Downsampled companions to price_series, sampled at the same indices so
+    # every layer lines up on the same x-grid. `None` marks a rolling-window
+    # warm-up period (e.g. the first 49 points have no SMA50) — never zero.
+    # All default to an empty list: a required field here would silently
+    # invalidate the JSON cache via `load_last_run`'s ValidationError guard.
+    bb_upper_series: list[float | None] = Field(default_factory=list)
+    bb_lower_series: list[float | None] = Field(default_factory=list)
+    sma20_series: list[float | None] = Field(default_factory=list)
+    sma50_series: list[float | None] = Field(default_factory=list)
+    volume_series: list[float | None] = Field(default_factory=list)
 
 
 class FailedTicker(BaseModel):

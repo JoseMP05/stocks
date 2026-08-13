@@ -66,6 +66,8 @@
     --up: #5ad3a4;
     --down: #ff7a6b;
     --mute: #a2938a;
+    --sma-fast: #6cc4ff;
+    --sma-slow: #c792ea;
     --readout: #f2ece7;
 
     /* Tier 2 — semantic */
@@ -473,7 +475,9 @@
     border-radius: var(--radius);
     text-wrap: pretty;
   }
-  .form-error.is-empty { display: none; }
+  .form-error.is-empty {
+    display: none;
+  }
 
   .position-fields {
     display: grid;
@@ -725,7 +729,10 @@
     min-inline-size: 0;
   }
   /* Uniform scaling. preserveAspectRatio="none" would distort the endpoint
-     dot and the "mi costo" label along with the curve. */
+     dot and the "mi costo" label along with the curve. The 300/76 ratio here
+     is only a fallback for the instant before the inline `style` (set per
+     panel from `s.view_width`/`s.view_height`, 76px or 110px depending on
+     whether a volume lane was drawn) takes effect. */
   .spark svg {
     inline-size: 100%;
     block-size: auto;
@@ -748,6 +755,54 @@
     stroke-dasharray: 3 3;
     vector-effect: non-scaling-stroke;
   }
+  .spark-band {
+    fill: var(--accent);
+    fill-opacity: 0.1;
+    stroke: none;
+  }
+  .spark-sma20,
+  .spark-sma50 {
+    fill: none;
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+  .spark-sma20 {
+    stroke: var(--sma-fast);
+    stroke-dasharray: 5 4;
+  }
+  .spark-sma50 {
+    stroke: var(--sma-slow);
+    stroke-dasharray: 5 6;
+    stroke-linecap: round;
+  }
+  .spark-vol-bar {
+    fill: var(--ink-quiet);
+    fill-opacity: 0.45;
+  }
+  /* Y-axis readouts. The halo (a stroke painted in the surface colour,
+     underneath the fill via paint-order) keeps the number legible over the
+     band fill or the price line it sits on, without a separate backing
+     rect. */
+  .spark-axis {
+    font-family: var(--font-data);
+    font-size: 6px;
+    font-variant-numeric: tabular-nums;
+    text-anchor: start;
+    dominant-baseline: middle;
+    paint-order: stroke;
+    stroke: var(--surface);
+    stroke-width: 2px;
+    stroke-linejoin: round;
+  }
+  .spark-axis-band {
+    fill: var(--accent);
+  }
+  .spark-axis-sma20 {
+    fill: var(--sma-fast);
+  }
+  .spark-axis-sma50 {
+    fill: var(--sma-slow);
+  }
   .spark-key {
     display: inline-flex;
     align-items: center;
@@ -758,14 +813,81 @@
     block-size: 0;
     border-block-start: 1px dashed var(--ink-quiet);
   }
+  .spark-key-band {
+    block-size: 0.5rem;
+    border-block-start: none;
+    background: var(--accent);
+    opacity: 0.3;
+  }
+  .spark-key-sma20 {
+    border-block-start-color: var(--sma-fast);
+    border-block-start-style: dashed;
+  }
+  .spark-key-sma50 {
+    border-block-start-color: var(--sma-slow);
+  }
+  .spark-key-vol {
+    block-size: 0.5rem;
+    border-block-start: none;
+    background: var(--ink-quiet);
+    opacity: 0.45;
+  }
   .spark-caption {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 0.25rem 1rem;
+    display: grid;
+    gap: 0.4rem;
     font-size: 0.6875rem;
     color: var(--ink-quiet);
     letter-spacing: 0.06em;
+  }
+  .spark-desc {
+    display: block;
+  }
+  .spark-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 1rem;
+  }
+
+  /* ---- Sparkline layer toggles ------------------------------------------ */
+  /* Pure CSS, no JS: each checkbox lives inside its own panel's legend key,
+     scoped with :has() on the panel's own <figure class="spark">, so the
+     same data-layer values work across every panel without unique ids. */
+  .spark-toggle-input {
+    inline-size: 0.85em;
+    block-size: 0.85em;
+    margin: 0;
+  }
+  .spark-toggle-input[data-layer="bands"] {
+    accent-color: var(--accent);
+  }
+  .spark-toggle-input[data-layer="sma20"] {
+    accent-color: var(--sma-fast);
+  }
+  .spark-toggle-input[data-layer="sma50"] {
+    accent-color: var(--sma-slow);
+  }
+  .spark-toggle-input[data-layer="vol"] {
+    accent-color: var(--ink-quiet);
+  }
+  label.spark-key {
+    min-block-size: var(--tap);
+    cursor: pointer;
+  }
+  .spark:has(.spark-toggle-input[data-layer="bands"]:not(:checked))
+    :is(.spark-band, .spark-axis-band) {
+    display: none;
+  }
+  .spark:has(.spark-toggle-input[data-layer="sma20"]:not(:checked))
+    :is(.spark-sma20, .spark-axis-sma20) {
+    display: none;
+  }
+  .spark:has(.spark-toggle-input[data-layer="sma50"]:not(:checked))
+    :is(.spark-sma50, .spark-axis-sma50) {
+    display: none;
+  }
+  .spark:has(.spark-toggle-input[data-layer="vol"]:not(:checked)) .spark-vol {
+    display: none;
   }
 
   /* ---- Quiet readouts -------------------------------------------------- */
@@ -879,7 +1001,9 @@
     scroll-margin-block-start: 5rem;
   }
   /* Jumping from the index must not park the heading under the sticky topbar. */
-  .prose :is(h3, h4) { scroll-margin-block-start: 5.5rem; }
+  .prose :is(h3, h4) {
+    scroll-margin-block-start: 5.5rem;
+  }
   /* ---- Model report: index + prose ------------------------------------- */
   /* Prose keeps a readable measure; the space that opens beside it carries
      the jump index instead of sitting empty. */
@@ -893,8 +1017,14 @@
      reader users meet the table of contents before the 10,000px of prose it
      navigates. Explicit placement rather than `order`, which would leave the
      two out of step. */
-  .prose { grid-column: 1; grid-row: 1; }
-  .reading-index { grid-column: 2; grid-row: 1; }
+  .prose {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .reading-index {
+    grid-column: 2;
+    grid-row: 1;
+  }
 
   .reading-index {
     position: sticky;
@@ -932,7 +1062,9 @@
     background: var(--ground);
     border-inline-start-color: var(--accent);
   }
-  .reading-index-title { overflow-wrap: anywhere; }
+  .reading-index-title {
+    overflow-wrap: anywhere;
+  }
   .reading-index-meta {
     font-family: var(--font-data);
     font-variant-numeric: tabular-nums;
@@ -944,8 +1076,14 @@
      Declared after the rules above so it actually overrides them — same
      specificity means source order decides. */
   @container (max-width: 52rem) {
-    .reading { grid-template-columns: minmax(0, 1fr); }
-    .prose, .reading-index { grid-column: 1; grid-row: auto; }
+    .reading {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .prose,
+    .reading-index {
+      grid-column: 1;
+      grid-row: auto;
+    }
     .reading-index {
       position: static;
       max-block-size: none;
@@ -962,7 +1100,9 @@
     max-inline-size: 68ch;
     overflow-wrap: break-word;
   }
-  .prose > * + * { margin-block-start: 0.9rem; }
+  .prose > * + * {
+    margin-block-start: 0.9rem;
+  }
   .prose h3 {
     margin-block-start: 2.25rem;
     padding-block-end: 0.4rem;
@@ -980,12 +1120,23 @@
     text-transform: uppercase;
     color: var(--ink-quiet);
   }
-  .prose > :first-child { margin-block-start: 0; }
-  .prose :is(h3, h4):focus-visible { outline-offset: 4px; }
+  .prose > :first-child {
+    margin-block-start: 0;
+  }
+  .prose :is(h3, h4):focus-visible {
+    outline-offset: 4px;
+  }
 
-  .prose ul, .prose ol { padding-inline-start: 1.1rem; }
-  .prose ul { list-style: none; }
-  .prose ul > li { position: relative; }
+  .prose ul,
+  .prose ol {
+    padding-inline-start: 1.1rem;
+  }
+  .prose ul {
+    list-style: none;
+  }
+  .prose ul > li {
+    position: relative;
+  }
   /* A calibration tick, not a bullet — same vocabulary as the dial scale. */
   .prose ul > li::before {
     content: "";
@@ -995,16 +1146,28 @@
     inline-size: 0.5rem;
     border-block-start: 1px solid var(--border);
   }
-  .prose ol { list-style: decimal; }
-  .prose ol::marker, .prose ol > li::marker {
+  .prose ol {
+    list-style: decimal;
+  }
+  .prose ol::marker,
+  .prose ol > li::marker {
     color: var(--ink-quiet);
     font-family: var(--font-data);
   }
-  .prose li + li { margin-block-start: 0.35rem; }
+  .prose li + li {
+    margin-block-start: 0.35rem;
+  }
 
-  .prose strong { color: var(--ink); font-weight: 600; }
-  .prose em { color: var(--ink); }
-  .prose a { overflow-wrap: anywhere; }
+  .prose strong {
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .prose em {
+    color: var(--ink);
+  }
+  .prose a {
+    overflow-wrap: anywhere;
+  }
   .prose blockquote {
     padding-inline-start: 0.9rem;
     border-inline-start: 2px solid var(--border);
@@ -1023,16 +1186,29 @@
     background: var(--ground);
     border-radius: var(--radius);
   }
-  .prose pre code { padding: 0; background: none; }
+  .prose pre code {
+    padding: 0;
+    background: none;
+  }
   /* Tables get their own scroll container so a wide one never widens the page. */
-  .prose :is(table) { inline-size: 100%; border-collapse: collapse; }
+  .prose :is(table) {
+    inline-size: 100%;
+    border-collapse: collapse;
+  }
   .prose :is(th, td) {
     padding: 0.4rem 0.6rem;
     text-align: start;
     border-block-end: 1px solid var(--rule);
   }
-  .prose th { font-size: var(--step--1); color: var(--ink-quiet); font-weight: 600; }
-  .prose hr { border: 0; border-block-start: 1px solid var(--rule); }
+  .prose th {
+    font-size: var(--step--1);
+    color: var(--ink-quiet);
+    font-weight: 600;
+  }
+  .prose hr {
+    border: 0;
+    border-block-start: 1px solid var(--rule);
+  }
   .llm-error {
     color: var(--down);
   }
@@ -1197,7 +1373,9 @@
       border-color: CanvasText;
     }
     .spark-line,
-    .spark-cost {
+    .spark-cost,
+    .spark-sma20,
+    .spark-sma50 {
       stroke: CanvasText;
     }
     .spark-end {
@@ -1205,6 +1383,27 @@
     }
     .spark-area {
       fill: none;
+    }
+    .spark-band {
+      fill: none;
+      stroke: CanvasText;
+    }
+    .spark-vol-bar {
+      fill: CanvasText;
+      fill-opacity: 1;
+    }
+    .spark-key-band,
+    .spark-key-vol {
+      background: CanvasText;
+      opacity: 1;
+    }
+    .spark-key-sma20,
+    .spark-key-sma50 {
+      border-block-start-color: CanvasText;
+    }
+    .spark-axis {
+      fill: CanvasText;
+      stroke: Canvas;
     }
     .gloss-mark {
       border-color: CanvasText;

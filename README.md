@@ -89,5 +89,5 @@ data/                        # watchlist, settings y cache — todo gitignored s
 - Integrar importación de acciones e historial desde XTB
 - Pie chart de acciones
 - Boton para desactivar ciertas acciones sin tener que removerlas
-- Añadir bandas de bollinger y volumen al grafico
+- RAG de contenido sobre finanzas y entrega de resultados
 - El Llm está teniendo en cuenta las noticias?

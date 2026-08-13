@@ -59,6 +59,17 @@ def money(value: float | None, decimals: int = 2) -> Markup:
     return Markup(f"{sign}{_unit('$')}{magnitude:,.{decimals}f}")
 
 
+def money_text(value: float | None, decimals: int = 2) -> str:
+    """Plain-text dollar formatting for contexts `money`'s `<span>` unit
+    markup can't reach — SVG `<text>` isn't an HTML integration point, so an
+    embedded `<span>` there is inert markup, not a styled unit.
+    """
+    if value is None:
+        return DASH
+    sign = MINUS if value < 0 else ""
+    return f"{sign}${abs(value):,.{decimals}f}"
+
+
 def num(value: float | None, decimals: int = 2, suffix: str = "") -> Markup:
     if value is None:
         return Markup(DASH)
@@ -126,6 +137,7 @@ def direction_word(value: float | None) -> str:
 
 templates.env.filters.update(
     money=money,
+    money_text=money_text,
     num=num,
     pct=pct,
     ratio_pct=ratio_pct,

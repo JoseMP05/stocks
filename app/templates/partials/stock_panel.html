@@ -4,7 +4,15 @@
 {% set f = r.fundamentals %}
 {% set uid = r.ticker | slug %}
 {% set d = build_dial(r.bull_score, r.bear_score) %}
-{% set s = build_sparkline(r.price_series, r.position.avg_cost if r.position else None) %}
+{% set s = build_sparkline(
+     r.price_series,
+     r.position.avg_cost if r.position else None,
+     r.bb_upper_series,
+     r.bb_lower_series,
+     r.sma20_series,
+     r.sma50_series,
+     r.volume_series
+   ) %}
 
 <article class="panel stock" aria-labelledby="stock-{{ uid }}-title">
   <header class="stock-head">
@@ -61,6 +69,7 @@
     {% if s %}
       <figure class="spark">
         <svg viewBox="0 0 {{ s.view_width | int }} {{ s.view_height | int }}"
+             style="aspect-ratio: {{ s.view_width | int }} / {{ s.view_height | int }}"
              aria-hidden="true"
              focusable="false">
           <defs>
@@ -69,24 +78,88 @@
               <stop offset="1" stop-color="var(--calib)" stop-opacity="0" />
             </linearGradient>
           </defs>
+          {% if s.has_bands %}
+            <path class="spark-band" d="{{ s.band_path }}" />
+          {% endif %}
           <path class="spark-area" d="{{ s.area_path }}" fill="url(#spark-{{ uid }}-fill)" />
+          {% if s.has_smas %}
+            <g class="spark-sma">
+              {% if s.sma20_path %}<path class="spark-sma20" d="{{ s.sma20_path }}" />{% endif %}
+              {% if s.sma50_path %}<path class="spark-sma50" d="{{ s.sma50_path }}" />{% endif %}
+            </g>
+          {% endif %}
+          <path class="spark-line" d="{{ s.line_path }}" />
           {#- The cost line is labelled in the caption, not on the plot: an
               in-chart label sat on top of the series and became unreadable. -#}
           {% if s.cost_y is not none %}
-            <line class="spark-cost" x1="0" y1="{{ s.cost_y }}" x2="{{ s.view_width | int }}" y2="{{ s.cost_y }}" />
+            <line class="spark-cost" x1="0" y1="{{ s.cost_y }}" x2="{{ s.plot_width | int }}" y2="{{ s.cost_y }}" />
           {% endif %}
-          <path class="spark-line" d="{{ s.line_path }}" />
           <circle class="spark-end" cx="{{ s.end_x }}" cy="{{ s.end_y }}" r="3" />
+          {#- Axis readouts live in their own gutter to the right of the plot
+              (view_width grows to fit it — see build_sparkline), so they
+              never sit on top of the line/bands they describe. Each carries
+              its layer's class, so the same :has() toggle that hides the
+              band/SMA line hides its readout too — no separate wiring
+              needed. -#}
+          {% if s.bb_upper_label %}
+            <text class="spark-axis spark-axis-band" x="{{ s.plot_width + 4 }}" y="{{ s.bb_upper_label.y }}">{{ s.bb_upper_label.value | money_text }}</text>
+          {% endif %}
+          {% if s.bb_lower_label %}
+            <text class="spark-axis spark-axis-band" x="{{ s.plot_width + 4 }}" y="{{ s.bb_lower_label.y }}">{{ s.bb_lower_label.value | money_text }}</text>
+          {% endif %}
+          {% if s.sma20_label %}
+            <text class="spark-axis spark-axis-sma20" x="{{ s.plot_width + 4 }}" y="{{ s.sma20_label.y }}">{{ s.sma20_label.value | money_text }}</text>
+          {% endif %}
+          {% if s.sma50_label %}
+            <text class="spark-axis spark-axis-sma50" x="{{ s.plot_width + 4 }}" y="{{ s.sma50_label.y }}">{{ s.sma50_label.value | money_text }}</text>
+          {% endif %}
+          {% if s.has_volume %}
+            <g class="spark-vol">
+              {% for bar in s.volume_bars %}
+                <rect class="spark-vol-bar" x="{{ bar.x }}" y="{{ bar.y }}" width="{{ bar.width }}" height="{{ bar.height }}" />
+              {% endfor %}
+            </g>
+          {% endif %}
         </svg>
         <figcaption class="spark-caption">
-          <span>cierre 1 año</span>
-          {% if s.cost_y is not none and r.position %}
-            <span class="spark-key">
-              <span class="spark-key-mark" aria-hidden="true"></span>
-              mi costo <span class="spark-range">{{ r.position.avg_cost | money }}</span>
-            </span>
-          {% endif %}
-          <span class="spark-range">{{ s.low | money }} — {{ s.high | money }}</span>
+          <span class="spark-desc">
+            cierre 1 año, rango
+            <span class="spark-range">{{ s.low | money }} – {{ s.high | money }}</span>
+          </span>
+          <div class="spark-legend">
+            {% if s.has_bands %}
+              <label class="spark-key">
+                <input type="checkbox" class="spark-toggle-input" data-layer="bands" checked>
+                <span class="spark-key-mark spark-key-band" aria-hidden="true"></span>
+                {{ term('bollinger', uid, 'bandas') }}
+              </label>
+            {% endif %}
+            {% if s.has_smas %}
+              <label class="spark-key">
+                <input type="checkbox" class="spark-toggle-input" data-layer="sma20" checked>
+                <span class="spark-key-mark spark-key-sma20" aria-hidden="true"></span>
+                {{ term('sma', uid ~ '-spark20', 'SMA20') }}
+              </label>
+              <label class="spark-key">
+                <input type="checkbox" class="spark-toggle-input" data-layer="sma50" checked>
+                <span class="spark-key-mark spark-key-sma50" aria-hidden="true"></span>
+                {{ term('sma', uid ~ '-spark50', 'SMA50') }}
+              </label>
+            {% endif %}
+            {% if s.cost_y is not none and r.position %}
+              <span class="spark-key">
+                <span class="spark-key-mark" aria-hidden="true"></span>
+                mi costo <span class="spark-range">{{ r.position.avg_cost | money }}</span>
+              </span>
+            {% endif %}
+            {% if s.has_volume %}
+              <label class="spark-key">
+                <input type="checkbox" class="spark-toggle-input" data-layer="vol" checked>
+                <span class="spark-key-mark spark-key-vol" aria-hidden="true"></span>
+                {{ term('volumen_relativo', uid, 'volumen') }}
+              </label>
+            {% endif %}
+          </div>
         </figcaption>
 
         {#- The wrapper carries the clipping, not the table itself: a
@@ -97,11 +170,31 @@
         <table>
           <caption>Serie de cierres de {{ r.ticker }} del último año, {{ s.point_count }} puntos, muestra de {{ s.rows | length }}.</caption>
           <thead>
-            <tr><th scope="col">Punto</th><th scope="col">Cierre</th></tr>
+            <tr>
+              <th scope="col">Punto</th>
+              <th scope="col">Cierre</th>
+              {% if s.has_bands %}
+                <th scope="col">Banda inferior</th>
+                <th scope="col">Banda superior</th>
+              {% endif %}
+              {% if s.has_volume %}
+                <th scope="col">Volumen</th>
+              {% endif %}
+            </tr>
           </thead>
           <tbody>
             {% for row in s.rows %}
-              <tr><th scope="row">{{ row.index }} de {{ s.point_count }}</th><td>{{ row.value | money }}</td></tr>
+              <tr>
+                <th scope="row">{{ row.index }} de {{ s.point_count }}</th>
+                <td>{{ row.value | money }}</td>
+                {% if s.has_bands %}
+                  <td>{{ row.bb_lower | money }}</td>
+                  <td>{{ row.bb_upper | money }}</td>
+                {% endif %}
+                {% if s.has_volume %}
+                  <td>{{ row.volume | num(0) }}</td>
+                {% endif %}
+              </tr>
             {% endfor %}
           </tbody>
           <tfoot>
