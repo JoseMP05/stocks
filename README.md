@@ -28,17 +28,39 @@ uvicorn app.main:app --reload --port 8420
 
 Abrí `http://127.0.0.1:8420` en el navegador.
 
+## Docker
+
+Con `docker compose` (recomendado — crea el volumen de datos automáticamente):
+
+```bash
+docker compose up -d
+```
+
+O corriendo la imagen publicada en Docker Hub directamente:
+
+```bash
+docker run -d --name analisis \
+  -p 8420:8420 \
+  -v analisis-data:/app/data \
+  -e OPENROUTER_API_KEY=sk-or-... \
+  <dockerhub-user>/stocks:latest
+```
+
+Abrí `http://127.0.0.1:8420`. La watchlist arranca vacía — se carga desde la propia UI, igual que en instalación local. Los datos (`data/`) persisten en el volumen `analisis-data` entre reinicios y actualizaciones de la imagen.
+
+La API key también se puede pasar por variable de entorno (`-e OPENROUTER_API_KEY=...`, o `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` según el proveedor elegido en el ⚙) — tiene prioridad sobre la guardada desde la UI.
+
 ## Configuración de la watchlist
 
 Se administra desde la propia UI (agregar/editar/borrar tickers y posición). Los datos quedan en `data/stocks_config.json` (gitignored, contiene precios de compra reales). `data/stocks_config.example.json` es la plantilla versionada.
 
 ## Interpretación con IA (opcional)
 
-Desde el ⚙ de la UI configurás proveedor, modelo y API key:
+Desde el ⚙ de la UI configurás proveedor, modelo y API key. Por defecto viene configurado **OpenRouter**, que cubre modelos de todos los proveedores con una sola key:
 
+- **OpenRouter** (default) — modelo con el prefijo del proveedor real (ej. `openai/gpt-latest`, `anthropic/claude-sonnet-5`)
 - **Anthropic** — modelo sin prefijo (ej. `claude-sonnet-5`)
 - **OpenAI** — modelo sin prefijo (ej. `gpt-4o`)
-- **OpenRouter** — modelo con el prefijo del proveedor real (ej. `openai/gpt-4o`, `anthropic/claude-sonnet-5`)
 
 La API key se puede setear también por variable de entorno (tiene prioridad sobre la guardada en la UI). Copiá `.env.example` a `.env` si preferís este camino:
 
@@ -68,5 +90,4 @@ data/                        # watchlist, settings y cache — todo gitignored s
 - Pie chart de acciones
 - Boton para desactivar ciertas acciones sin tener que removerlas
 - Añadir bandas de bollinger y volumen al grafico
-- Dockerizar proyecto
 - El Llm está teniendo en cuenta las noticias?

@@ -1,0 +1,18 @@
+services:
+  analisis:
+    # Comentá `build` y descomentá `image` para correr la publicada en Docker Hub.
+    build: .
+    # image: <dockerhub-user>/stocks:latest
+    container_name: analisis
+    ports:
+      - "8420:8420"
+    volumes:
+      - analisis-data:/app/data
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    restart: unless-stopped
+
+volumes:
+  analisis-data:

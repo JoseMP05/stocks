@@ -76,6 +76,12 @@ def _watchlist_response(request: Request, error: str | None = None) -> HTMLRespo
     )
 
 
+@app.get("/health")
+def health() -> dict[str, str]:
+    """Liveness probe for container orchestration. No disk or network I/O."""
+    return {"status": "ok"}
+
+
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
