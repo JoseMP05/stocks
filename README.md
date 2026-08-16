@@ -50,6 +50,43 @@ Abrí `http://127.0.0.1:8420`. La watchlist arranca vacía — se carga desde la
 
 La API key también se puede pasar por variable de entorno (`-e OPENROUTER_API_KEY=...`, o `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` según el proveedor elegido en el ⚙) — tiene prioridad sobre la guardada desde la UI.
 
+### Publicar una versión nueva
+
+La imagen de Docker Hub se publica desde el workflow
+`.github/workflows/docker-publish.yml`, que se dispara **solo con un tag `v*`**.
+No hay publicación automática en cada push a `main`.
+
+```bash
+# 1. main limpio y sincronizado
+git status
+git pull
+
+# 2. crear el tag (semver: v<major>.<minor>.<patch>)
+git tag -a v0.2.0 -m "release: v0.2.0"
+
+# 3. publicar
+git push origin v0.2.0
+```
+
+El push del tag construye la imagen multi-arch (`linux/amd64`, `linux/arm64`) y
+la sube como `<dockerhub-user>/stocks:0.2.0` y `<dockerhub-user>/stocks:latest`.
+
+Qué número elegir: **patch** para arreglos, **minor** para funcionalidad nueva
+compatible, **major** para cambios que rompen el uso existente.
+
+Si te equivocaste **antes** de que el workflow publique, podés borrar el tag
+(`git tag -d v0.2.0 && git push origin :refs/tags/v0.2.0`). Si la imagen ya se
+publicó, no reescribas el tag: subí la versión siguiente.
+
+Para actualizar un despliegue existente a la imagen nueva:
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+Los datos viven en el volumen `analisis-data`, así que sobreviven a la
+actualización.
+
 ## Configuración de la watchlist
 
 Se administra desde la propia UI (agregar/editar/borrar tickers y posición). Los datos quedan en `data/stocks_config.json` (gitignored, contiene precios de compra reales). `data/stocks_config.example.json` es la plantilla versionada.
