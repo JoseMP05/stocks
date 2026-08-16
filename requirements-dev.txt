@@ -1,0 +1,7 @@
+# Test-only dependencies. Kept out of requirements.txt on purpose: the
+# Dockerfile installs that file into the runtime image, and the image has no
+# business shipping a test runner.
+-r requirements.txt
+
+pytest>=8.3
+httpx>=0.28  # required by fastapi.testclient.TestClient

@@ -70,6 +70,26 @@
     --sma-slow: #c792ea;
     --readout: #f2ece7;
 
+    /* Categorical ring, assigned in fixed order and never cycled — slot 1 is
+       always the largest holding, so a filter that drops a series cannot
+       repaint the survivors. Validated as a set against --panel: all eight
+       sit in the dark lightness band (OKLCH L 0.48–0.67), clear the chroma
+       floor, hold >= 3:1 on the surface, and the worst adjacent pair keeps
+       CVD deltaE 8.4 / normal-vision 19.3.
+
+       Deliberately not --up / --down: those mean profit and loss everywhere
+       else in this interface, and a slice is neither. The residual bucket
+       wears the neutral rather than a ninth hue. */
+    --donut-1: #3987e5;
+    --donut-2: #d95926;
+    --donut-3: #199e70;
+    --donut-4: #c98500;
+    --donut-5: #d55181;
+    --donut-6: #008300;
+    --donut-7: #9085e9;
+    --donut-8: #e66767;
+    --donut-other: #a2938a;
+
     /* Tier 2 — semantic */
     --ground: var(--housing);
     --surface: var(--panel);
@@ -890,6 +910,311 @@
     display: none;
   }
 
+  /* ---- XTB import ------------------------------------------------------- */
+  .xtb {
+    /* Reference for the donut and bar-list container queries below. */
+    container-type: inline-size;
+    gap: 1rem;
+  }
+  .xtb-upload {
+    display: grid;
+    gap: 0.6rem;
+    padding: 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface-over);
+  }
+  .xtb-file,
+  .xtb-sync {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-block-size: var(--tap);
+    flex-wrap: wrap;
+  }
+  .xtb-sync {
+    cursor: pointer;
+  }
+  /* Sized explicitly, like .spark-toggle-input: the base layer stretches every
+     input to `inline-size: 100%` for the number fields, which turns a bare
+     checkbox into a full-width block and wraps its label onto the next line. */
+  .xtb-sync input,
+  .donut-mode input {
+    inline-size: 0.9em;
+    block-size: 0.9em;
+    flex: none;
+    margin: 0;
+    accent-color: var(--accent);
+  }
+  .xtb-upload .btn {
+    justify-self: start;
+  }
+
+  /* ---- Allocation ring --------------------------------------------------
+     Three breakdowns are rendered at once and one radio decides which shows.
+     `display: none` is doing double duty: it hides the inactive <g> and its
+     hidden data table together, so a screen reader meets exactly one table
+     rather than three. */
+  .donut {
+    display: grid;
+    gap: 0.9rem;
+    margin-block-start: 1rem;
+  }
+  .donut-body {
+    display: grid;
+    grid-template-columns: minmax(150px, 220px) minmax(0, 1fr);
+    gap: 1.25rem;
+    align-items: center;
+  }
+  .donut-ring {
+    inline-size: 100%;
+    block-size: auto;
+  }
+  .donut-slice {
+    /* A real gap in the surface colour, on top of the angular gap the
+       geometry already leaves. Two adjacent hues never touch, which is what
+       keeps the ring readable for a colour-blind reader. */
+    stroke: var(--surface);
+    stroke-width: 2;
+    stroke-linejoin: round;
+  }
+  .donut-slice[data-tone="0"] { fill: var(--donut-other); }
+  .donut-slice[data-tone="1"] { fill: var(--donut-1); }
+  .donut-slice[data-tone="2"] { fill: var(--donut-2); }
+  .donut-slice[data-tone="3"] { fill: var(--donut-3); }
+  .donut-slice[data-tone="4"] { fill: var(--donut-4); }
+  .donut-slice[data-tone="5"] { fill: var(--donut-5); }
+  .donut-slice[data-tone="6"] { fill: var(--donut-6); }
+  .donut-slice[data-tone="7"] { fill: var(--donut-7); }
+  .donut-slice[data-tone="8"] { fill: var(--donut-8); }
+
+  .donut-total {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-variant-numeric: tabular-nums;
+    text-anchor: middle;
+    fill: var(--ink);
+  }
+  .donut-total-label {
+    font-family: var(--font-ui);
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-anchor: middle;
+    fill: var(--ink-quiet);
+  }
+
+  .donut-legend {
+    display: grid;
+    gap: 0.3rem;
+    font-size: var(--step--1);
+  }
+  .donut-legend li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    gap: 0.5rem;
+    align-items: baseline;
+  }
+  .donut-swatch {
+    inline-size: 0.7em;
+    block-size: 0.7em;
+    border-radius: 2px;
+    align-self: center;
+  }
+  .donut-swatch[data-tone="0"] { background: var(--donut-other); }
+  .donut-swatch[data-tone="1"] { background: var(--donut-1); }
+  .donut-swatch[data-tone="2"] { background: var(--donut-2); }
+  .donut-swatch[data-tone="3"] { background: var(--donut-3); }
+  .donut-swatch[data-tone="4"] { background: var(--donut-4); }
+  .donut-swatch[data-tone="5"] { background: var(--donut-5); }
+  .donut-swatch[data-tone="6"] { background: var(--donut-6); }
+  .donut-swatch[data-tone="7"] { background: var(--donut-7); }
+  .donut-swatch[data-tone="8"] { background: var(--donut-8); }
+  /* Text wears text colour; the swatch beside it carries identity. A label
+     painted in its series hue reads as decoration and fails contrast. */
+  .donut-legend-name {
+    color: var(--ink);
+    overflow-wrap: anywhere;
+  }
+  /* The holdings behind a grouped wedge. Quiet and on its own line: it is the
+     answer to "made of what", not a second heading. */
+  .donut-legend-members {
+    display: block;
+    font-family: var(--font-data);
+    font-size: 0.85em;
+    color: var(--ink-quiet);
+  }
+  .donut-legend-value,
+  .donut-legend-share {
+    font-family: var(--font-data);
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-quiet);
+  }
+
+  .donut-modes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    border: 0;
+    padding: 0;
+    margin: 0;
+  }
+  .donut-mode {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-block-size: var(--tap);
+    cursor: pointer;
+    font-size: var(--step--1);
+  }
+
+  /* One rule per mode, keyed on the radio's value rather than an id so the
+     panel can be rendered more than once without collisions. */
+  .donut:has(input[name="donut-mode"][value="ticker"]:checked)
+    :is([data-mode="sector"], [data-mode="class"]),
+  .donut:has(input[name="donut-mode"][value="sector"]:checked)
+    :is([data-mode="ticker"], [data-mode="class"]),
+  .donut:has(input[name="donut-mode"][value="class"]:checked)
+    :is([data-mode="ticker"], [data-mode="sector"]) {
+    display: none;
+  }
+
+  /* ---- Closed trades ---------------------------------------------------- */
+  .xtb-realized {
+    margin-block-start: 1.25rem;
+  }
+  .realized-bars {
+    display: grid;
+    gap: 0.4rem;
+    margin-block-start: 0.6rem;
+    font-size: var(--step--1);
+  }
+  .realized-bars li {
+    display: grid;
+    grid-template-columns: 5.5rem minmax(60px, 1fr) auto;
+    grid-template-areas: "name track value" "name meta meta";
+    gap: 0.15rem 0.6rem;
+    align-items: center;
+  }
+  .realized-name {
+    grid-area: name;
+    font-family: var(--font-data);
+  }
+  .realized-track {
+    grid-area: track;
+    display: block;
+    block-size: 0.5rem;
+    border-radius: 3px;
+    background: var(--surface-over);
+  }
+  .realized-fill {
+    display: block;
+    inline-size: var(--share, 0%);
+    block-size: 100%;
+    border-radius: 3px;
+    background: currentColor;
+  }
+  .realized-value {
+    grid-area: value;
+    font-family: var(--font-data);
+    font-variant-numeric: tabular-nums;
+  }
+  .realized-meta {
+    grid-area: meta;
+    color: var(--ink-quiet);
+  }
+
+  /* ---- Capital curve ---------------------------------------------------- */
+  .capital {
+    margin-block-start: 1.25rem;
+    display: grid;
+    gap: 0.6rem;
+  }
+  .capital-plot {
+    inline-size: 100%;
+    block-size: 120px;
+  }
+  .capital-line {
+    fill: none;
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+  }
+  .capital-line[data-series="deposits"] { stroke: var(--ink-quiet); }
+  .capital-line[data-series="invested"] { stroke: var(--sma-fast); }
+  .capital-line[data-series="realized"] { stroke: var(--accent); }
+  .capital-zero {
+    stroke: var(--rule);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+  .capital-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.9rem;
+    font-size: var(--step--1);
+  }
+  .capital-key {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .capital-key-mark {
+    inline-size: 0.9rem;
+    block-size: 2px;
+    border-radius: 1px;
+  }
+  .capital-key-mark[data-series="deposits"] { background: var(--ink-quiet); }
+  .capital-key-mark[data-series="invested"] { background: var(--sma-fast); }
+  .capital-key-mark[data-series="realized"] { background: var(--accent); }
+  .capital-key-value {
+    font-family: var(--font-data);
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-quiet);
+  }
+
+  /* ---- Sync report ------------------------------------------------------ */
+  .xtb-sync-report {
+    margin-block-start: 1.25rem;
+    display: grid;
+    gap: 0.6rem;
+    justify-items: start;
+  }
+  .sync-changes {
+    display: grid;
+    gap: 0.3rem;
+    font-size: var(--step--1);
+  }
+  .sync-changes li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: baseline;
+  }
+  .sync-action {
+    font-size: var(--step--1);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-quiet);
+  }
+  .sync-changes li[data-action="demoted"] .sync-action,
+  .sync-changes li[data-action="skipped"] .sync-action {
+    color: var(--accent);
+  }
+  .sync-detail {
+    color: var(--ink-quiet);
+  }
+
+  @container (max-width: 34rem) {
+    .donut-body {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .realized-bars li {
+      grid-template-columns: 5rem minmax(40px, 1fr) auto;
+    }
+  }
+
   /* ---- Quiet readouts -------------------------------------------------- */
   .position {
     display: grid;
@@ -1407,6 +1732,27 @@
     }
     .gloss-mark {
       border-color: CanvasText;
+    }
+    /* The ring loses its hues entirely here, so the wedges are told apart by
+       the surface gap alone and identity moves to the legend text — which is
+       why the legend names every slice instead of relying on colour. */
+    .donut-slice {
+      fill: Canvas;
+      stroke: CanvasText;
+    }
+    .donut-swatch {
+      border: 1px solid CanvasText;
+    }
+    .capital-line,
+    .capital-zero {
+      stroke: CanvasText;
+    }
+    .capital-key-mark,
+    .realized-fill {
+      background: CanvasText;
+    }
+    .realized-track {
+      border: 1px solid CanvasText;
     }
   }
 }

@@ -9,8 +9,14 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from app.config import RESULTS_CACHE_FILE, SETTINGS_FILE, WATCHLIST_FILE
-from app.models import AnalysisRun, LLMSettings, Watchlist, WatchlistItem
+from app.config import (
+    RESULTS_CACHE_FILE,
+    SETTINGS_FILE,
+    WATCHLIST_BACKUP_FILE,
+    WATCHLIST_FILE,
+    XTB_SNAPSHOT_FILE,
+)
+from app.models import AnalysisRun, LLMSettings, Watchlist, WatchlistItem, XtbSnapshot
 
 
 def _write_json(path: Path, payload: dict) -> None:
@@ -111,3 +117,53 @@ def load_last_run() -> AnalysisRun | None:
 
 def save_last_run(run: AnalysisRun) -> None:
     _write_json(RESULTS_CACHE_FILE, run.model_dump())
+
+
+# ── XTB snapshot ─────────────────────────────────────────────────────────────
+
+def load_xtb_snapshot() -> XtbSnapshot | None:
+    raw = _read_json(XTB_SNAPSHOT_FILE)
+    if raw is None:
+        return None
+    try:
+        return XtbSnapshot.model_validate(raw)
+    except ValidationError:
+        # Same posture as the analysis cache: a snapshot from an older schema
+        # is re-createable by uploading the file again.
+        return None
+
+
+def save_xtb_snapshot(snapshot: XtbSnapshot) -> None:
+    _write_json(XTB_SNAPSHOT_FILE, snapshot.model_dump())
+
+
+# ── watchlist backup ─────────────────────────────────────────────────────────
+#
+# An XTB import overwrites positions the user typed by hand. That is the point
+# of the feature, but it means one upload can silently replace real financial
+# data, so the previous state is kept where a single click can bring it back.
+
+def backup_watchlist() -> bool:
+    """Snapshot the current watchlist. False when there is nothing to back up."""
+    raw = _read_json(WATCHLIST_FILE)
+    if raw is None:
+        return False
+    _write_json(WATCHLIST_BACKUP_FILE, raw)
+    return True
+
+
+def has_watchlist_backup() -> bool:
+    return WATCHLIST_BACKUP_FILE.exists()
+
+
+def restore_watchlist_backup() -> bool:
+    """Put the backup back. False when there is none, or it no longer parses."""
+    raw = _read_json(WATCHLIST_BACKUP_FILE)
+    if raw is None:
+        return False
+    try:
+        watchlist = Watchlist.model_validate(raw)
+    except ValidationError:
+        return False
+    save_watchlist(watchlist)
+    return True

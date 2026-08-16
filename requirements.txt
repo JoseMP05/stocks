@@ -9,6 +9,12 @@ yfinance>=0.2.50
 pandas>=2.2
 numpy>=1.26
 
+# Reads the XTB broker export. Used directly rather than through
+# pandas.read_excel: the sheets carry irregular preambles, a summary block and
+# nested row groups under a single header, so cell-level access beats trying to
+# coerce them into a rectangular DataFrame.
+openpyxl>=3.1
+
 anthropic>=0.40
 openai>=1.55
 

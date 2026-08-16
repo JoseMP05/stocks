@@ -14,6 +14,11 @@ WATCHLIST_FILE = DATA_DIR / "stocks_config.json"
 WATCHLIST_EXAMPLE_FILE = DATA_DIR / "stocks_config.example.json"
 SETTINGS_FILE = DATA_DIR / "settings.json"
 RESULTS_CACHE_FILE = DATA_DIR / "last_results.json"
+XTB_SNAPSHOT_FILE = DATA_DIR / "xtb_portfolio.json"
+# Taken immediately before an import rewrites the watchlist. One level deep is
+# enough: the risk being covered is "that import did something I did not
+# expect", not long-term history.
+WATCHLIST_BACKUP_FILE = DATA_DIR / "stocks_config.backup.json"
 
 # Number of tickers fetched concurrently. yfinance is network-bound, so a
 # handful of threads is plenty and keeps us well clear of Yahoo's rate limits.
@@ -22,6 +27,10 @@ MAX_FETCH_WORKERS = 6
 # Points kept in the price series used to draw the sparkline. One year of
 # daily candles is ~252 rows; downsampling keeps the cached payload small.
 SPARKLINE_POINTS = 80
+
+# Ceiling on an uploaded XTB export. A real one is ~30 kB, so 5 MB is generous
+# and still refuses an oversized file before openpyxl decompresses it.
+MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 
 load_dotenv(BASE_DIR / ".env")
 

@@ -2,19 +2,23 @@
 
 from __future__ import annotations
 
-from fastapi import FastAPI, Form, HTTPException, Request
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
+from starlette.concurrency import run_in_threadpool
 
 from app import storage
 from app.analysis.market import run_analysis
-from app.config import STATIC_DIR
+from app.config import MAX_UPLOAD_BYTES, STATIC_DIR
 from app.llm import get_provider
 from app.llm.errors import LLMError
 from app.llm.prompt import build_prompt
-from app.models import LLMSettings, Position, WatchlistItem
+from app.models import LLMSettings, Position, WatchlistItem, XtbSnapshot
 from app.templating import templates
+from app.xtb import sectors, sync
+from app.xtb.parser import XtbParseError, parse_workbook
+from app.xtb.view import build_view
 
 app = FastAPI(title="Análisis de Acciones")
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
@@ -76,6 +80,46 @@ def _watchlist_response(request: Request, error: str | None = None) -> HTMLRespo
     )
 
 
+def _xtb_context(snapshot: XtbSnapshot | None = None) -> dict | None:
+    """View model for the XTB panel, or None when nothing has been imported."""
+    if snapshot is None:
+        snapshot = storage.load_xtb_snapshot()
+    if snapshot is None:
+        return None
+    view = build_view(snapshot)
+    view["can_undo"] = storage.has_watchlist_backup()
+    return view
+
+
+def _xtb_response(
+    request: Request,
+    *,
+    view: dict | None = None,
+    error: str | None = None,
+    changes: list | None = None,
+    restored: bool = False,
+) -> HTMLResponse:
+    """Render the panel, plus out-of-band slots for the error and the rail.
+
+    Always a 200, for the same reason as `_watchlist_response`. The watchlist
+    swap is what makes the sync feel like one action: the rail updates in the
+    same response instead of waiting for a reload.
+    """
+    if view is None:
+        view = _xtb_context()
+    return templates.TemplateResponse(
+        request=request,
+        name="partials/xtb_response.html",
+        context={
+            "xtb": view,
+            "error": error,
+            "changes": changes,
+            "restored": restored,
+            "watchlist": storage.load_watchlist().watchlist,
+        },
+    )
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     """Liveness probe for container orchestration. No disk or network I/O."""
@@ -91,6 +135,9 @@ def index(request: Request) -> HTMLResponse:
             "watchlist": storage.load_watchlist().watchlist,
             "run": storage.load_last_run(),
             "settings": storage.load_settings(),
+            # The last import survives a restart the same way the analysis
+            # cache does, so a reload does not mean uploading the file again.
+            "xtb": _xtb_context(),
         },
     )
 
@@ -164,6 +211,64 @@ def analyze(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
         request=request, name="partials/results.html", context={"run": run}
     )
+
+
+# ── XTB import ───────────────────────────────────────────────────────────────
+
+def _ingest(raw: bytes, filename: str, do_sync: bool) -> tuple[dict, list | None]:
+    """The blocking half of an import: parse, enrich, persist, optionally sync."""
+    snapshot = parse_workbook(raw, source_file=filename)
+    sectors.enrich(snapshot)
+    storage.save_xtb_snapshot(snapshot)
+    changes = sync.apply_sync(snapshot).changes if do_sync else None
+    return _xtb_context(snapshot), changes
+
+
+@app.post("/xtb/upload", response_class=HTMLResponse)
+async def upload_xtb(
+    request: Request,
+    file: UploadFile = File(...),
+    sync_watchlist: str = Form(default=""),
+) -> HTMLResponse:
+    """Import an XTB account statement.
+
+    `async def` here, unlike `/analyze`: `UploadFile.read` is a coroutine, so
+    the "declare it `def` and let FastAPI thread it" trick does not apply. The
+    blocking work after the read — openpyxl, then any provider lookup the
+    sector cache missed — is handed to the threadpool explicitly instead.
+    """
+    filename = file.filename or ""
+    if not filename.lower().endswith(".xlsx"):
+        return _xtb_response(
+            request,
+            error="El archivo tiene que ser un Excel .xlsx exportado desde XTB.",
+        )
+
+    raw = await file.read()
+    if len(raw) > MAX_UPLOAD_BYTES:
+        limit = MAX_UPLOAD_BYTES // (1024 * 1024)
+        return _xtb_response(request, error=f"El archivo supera los {limit} MB.")
+    if not raw:
+        return _xtb_response(request, error="El archivo llegó vacío.")
+
+    try:
+        view, changes = await run_in_threadpool(
+            _ingest, raw, filename, bool(sync_watchlist)
+        )
+    except XtbParseError as exc:
+        return _xtb_response(request, error=str(exc))
+
+    return _xtb_response(request, view=view, changes=changes)
+
+
+@app.post("/xtb/sync/undo", response_class=HTMLResponse)
+def undo_xtb_sync(request: Request) -> HTMLResponse:
+    """Put back the watchlist as it was before the last import wrote to it."""
+    if not storage.restore_watchlist_backup():
+        return _xtb_response(
+            request, error="No hay una copia previa de la watchlist para restaurar."
+        )
+    return _xtb_response(request, restored=True)
 
 
 # ── LLM interpretation ───────────────────────────────────────────────────────

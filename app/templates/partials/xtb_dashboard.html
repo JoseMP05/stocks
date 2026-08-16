@@ -1,0 +1,193 @@
+{% from "partials/_donut.html" import donut %}
+{% from "partials/_glossary.html" import term %}
+
+<section class="panel xtb" aria-labelledby="xtb-title">
+  <h2 class="label" id="xtb-title">Portafolio XTB</h2>
+
+  <form class="xtb-upload"
+        hx-post="/xtb/upload"
+        hx-target="#xtb"
+        hx-swap="innerHTML"
+        hx-encoding="multipart/form-data"
+        hx-indicator="#xtb-status">
+    <label class="xtb-file">
+      <span>Reporte de XTB (.xlsx)</span>
+      <input type="file" name="file" accept=".xlsx" required>
+    </label>
+    <label class="xtb-sync">
+      <input type="checkbox" name="sync_watchlist" value="1" checked>
+      <span>Actualizar la watchlist con estas posiciones</span>
+    </label>
+    <button type="submit" class="btn">Importar</button>
+    <p class="field-hint">
+      En XTB: Cuenta → Historial de la cuenta → Exportar a Excel. El archivo se
+      procesa en tu máquina y no sale de acá.
+    </p>
+  </form>
+
+  {#- Inline rather than an out-of-band slot, unlike the watchlist's error.
+      There the target is the list itself, which must survive a failed submit;
+      here the whole panel is re-rendered either way, so the message travels
+      with it and there is no second element claiming the same id. -#}
+  <p id="xtb-error"
+     class="form-error{% if not error %} is-empty{% endif %}"
+     role="alert">{{ error if error }}</p>
+
+  {% if not xtb %}
+    <p class="empty">Todavía no importaste nada. Subí el Excel que exporta XTB y vas a ver cómo está repartida tu cartera.</p>
+  {% else %}
+    {% set m = xtb.metrics %}
+
+    <dl class="strip strip-lead">
+      <div><dt>valor abierto</dt><dd>{{ m.open_value | money }}</dd></div>
+      <div>
+        <dt>{{ term('pnl', 'xtb-unreal', 'P&L no realizado') }}</dt>
+        <dd class="{{ m.unrealized_pnl | direction }}">{{ m.unrealized_pnl | signed_money }}</dd>
+      </div>
+      <div>
+        <dt>P&L realizado</dt>
+        <dd class="{{ m.realized_pnl | direction }}">{{ m.realized_pnl | signed_money }}</dd>
+      </div>
+      <div>
+        <dt>retorno de la cuenta</dt>
+        <dd class="{{ m.total_return | direction }}">
+          {{ m.total_return | signed_money }}
+          <small>{{ m.total_return_pct | pct(2, true) }}</small>
+        </dd>
+      </div>
+    </dl>
+
+    <dl class="strip">
+      <div><dt>capital aportado</dt><dd>{{ m.net_deposits | money }}</dd></div>
+      <div><dt>depósitos / retiros</dt><dd>{{ m.deposits | money }} / {{ m.withdrawals | money }}</dd></div>
+      <div><dt>saldo en efectivo</dt><dd>{{ m.cash_balance | money }}</dd></div>
+      <div><dt>dividendos</dt><dd>{{ m.dividends | money }} <small>ret. {{ m.withholding_tax | money }}</small></dd></div>
+    </dl>
+
+    <p class="run-meta">
+      Cuenta {{ xtb.snapshot.account }} · reporte del {{ xtb.snapshot.generated_at or xtb.snapshot.imported_at }} ·
+      {{ m.holdings_count }} posiciones · mayor tenencia {{ m.top_holding }} ({{ m.top_holding_share | num(1) }}%)
+    </p>
+
+    {% if m.discrepancies or xtb.snapshot.warnings %}
+      <ul class="failures" aria-label="Avisos de la importación">
+        {% for note in m.discrepancies %}<li>{{ note }}</li>{% endfor %}
+        {% for note in xtb.snapshot.warnings %}<li>{{ note }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+
+    {{ donut(xtb.donuts, xtb.modes, m.open_value) }}
+
+    {% if xtb.realized %}
+      <section class="xtb-realized" aria-labelledby="xtb-realized-title">
+        <h3 class="label" id="xtb-realized-title">Lo que ya cerraste</h3>
+        <ul class="realized-bars">
+          {% for record in xtb.realized %}
+            <li class="{{ record.realized | direction }}">
+              <span class="realized-name">{{ record.symbol }}</span>
+              <span class="realized-track" aria-hidden="true">
+                <span class="realized-fill"
+                      style="--share: {{ (record.realized | abs / xtb.realized_scale * 100) | round(2) if xtb.realized_scale else 0 }}%"></span>
+              </span>
+              <span class="realized-value">{{ record.realized | signed_money }}</span>
+              <span class="realized-meta">
+                {{ record.trades }} op · {{ record.win_rate | num(0) }}% acierto
+                {%- if record.avg_holding_days %} · {{ record.avg_holding_days | num(0) }} d{% endif %}
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+
+    {% if xtb.curve %}
+      {% set c = xtb.curve %}
+      <figure class="capital" aria-labelledby="capital-title">
+        <h3 class="label" id="capital-title">De dónde salió el capital</h3>
+        <svg class="capital-plot"
+             viewBox="0 0 {{ c.view_width }} {{ c.view_height }}"
+             preserveAspectRatio="none"
+             aria-hidden="true"
+             focusable="false">
+          {% if c.show_zero %}
+            <line class="capital-zero" x1="0" y1="{{ c.zero_y }}" x2="{{ c.view_width }}" y2="{{ c.zero_y }}"></line>
+          {% endif %}
+          {% for line in c.lines %}
+            <path class="capital-line" data-series="{{ line.key }}" d="{{ line.path }}"></path>
+          {% endfor %}
+        </svg>
+        <figcaption class="capital-caption">
+          <div class="capital-legend">
+            {% for line in c.lines %}
+              <span class="capital-key">
+                <span class="capital-key-mark" data-series="{{ line.key }}" aria-hidden="true"></span>
+                {{ line.label }} <span class="capital-key-value">{{ line.last_value | money }}</span>
+              </span>
+            {% endfor %}
+          </div>
+          <p class="field-hint">
+            {{ c.first_date }} a {{ c.last_date }}. Las tres series salen del
+            movimiento de efectivo, así que son exactas. El valor de mercado
+            histórico no está: el reporte no lo trae, y dibujarlo con los
+            precios de hoy sería inventarlo.
+          </p>
+        </figcaption>
+
+        <div class="visually-hidden">
+          <table>
+            <caption>Capital de la cuenta por fecha, {{ c.dates | length }} días con movimiento.</caption>
+            <thead>
+              <tr>
+                <th scope="col">Fecha</th>
+                <th scope="col">Capital aportado</th>
+                <th scope="col">Puesto en posiciones</th>
+                <th scope="col">Ganancia realizada</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for point in xtb.curve_points %}
+                <tr>
+                  <th scope="row">{{ point.date }}</th>
+                  <td>{{ point.net_deposits | money }}</td>
+                  <td>{{ point.invested | money }}</td>
+                  <td>{{ point.realized_pnl | money }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </figure>
+    {% endif %}
+  {% endif %}
+
+  {% if restored %}
+    <p class="xtb-sync-report">Watchlist restaurada a como estaba antes de la última importación.</p>
+  {% elif changes %}
+    {% set touched = changes | rejectattr('action', 'equalto', 'unchanged') | list %}
+    <section class="xtb-sync-report" aria-labelledby="xtb-sync-title">
+      <h3 class="label" id="xtb-sync-title">Qué cambió en la watchlist</h3>
+      {% if touched %}
+        <ul class="sync-changes">
+          {% for change in touched %}
+            <li data-action="{{ change.action }}">
+              <strong>{{ change.ticker }}</strong>
+              <span class="sync-action">{{ change.action }}</span>
+              {% if change.detail %}<span class="sync-detail">{{ change.detail }}</span>{% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="empty">Nada que cambiar: la watchlist ya coincidía con el broker.</p>
+      {% endif %}
+      {% if xtb and xtb.can_undo %}
+        <button type="button"
+                class="btn"
+                hx-post="/xtb/sync/undo"
+                hx-target="#xtb"
+                hx-swap="innerHTML">
+          Deshacer
+        </button>
+      {% endif %}
+    </section>
+  {% endif %}
+</section>

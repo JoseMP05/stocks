@@ -1,0 +1,118 @@
+{#
+  Allocation ring, one figure carrying all three breakdowns.
+
+  Every mode is rendered and a radio group picks which one shows, through the
+  same `:has()` rule the sparkline layer toggles use. There is no htmx swap
+  here on purpose: switching needs no data the page does not already hold, and
+  `display: none` takes the inactive modes out of the accessibility tree too —
+  so the hidden data tables go with them, which a swap would have to remember
+  to do by hand.
+
+  Identity never rests on hue alone: every slice is named in the legend beside
+  its swatch, and the same numbers exist as a table for screen readers.
+#}
+{% macro donut(donuts, modes, currency_total) %}
+<figure class="donut" role="group" aria-labelledby="donut-title">
+  <h3 class="label" id="donut-title">Cómo está repartido</h3>
+
+  <div class="donut-body">
+    <svg class="donut-ring"
+         viewBox="0 0 220 220"
+         aria-hidden="true"
+         focusable="false">
+      {% for mode, mode_label in modes %}
+        {% set dn = donuts[mode] %}
+        {% if dn %}
+          <g data-mode="{{ mode }}">
+            {% for slice in dn.slices %}
+              <path class="donut-slice"
+                    data-tone="{{ slice.tone }}"
+                    fill-rule="evenodd"
+                    d="{{ slice.path }}"></path>
+            {% endfor %}
+          </g>
+        {% endif %}
+      {% endfor %}
+      {#- money_text, not money: SVG is not an HTML integration point, so the
+          <span> the money filter wraps the unit in is inert markup here. -#}
+      <text class="donut-total" x="110" y="104">{{ currency_total | money_text }}</text>
+      <text class="donut-total-label" x="110" y="122">en cartera</text>
+    </svg>
+
+    <div class="donut-legends">
+      {% for mode, mode_label in modes %}
+        {% set dn = donuts[mode] %}
+        <ul class="donut-legend" data-mode="{{ mode }}">
+          {% if dn %}
+            {% for slice in dn.slices %}
+              <li>
+                <span class="donut-swatch" data-tone="{{ slice.tone }}" aria-hidden="true"></span>
+                <span class="donut-legend-name">
+                  {{ slice.label }}
+                  {#- A grouped wedge names what it is made of. "Industrials
+                      16%" is half an answer on its own. -#}
+                  {% if slice.members %}
+                    <small class="donut-legend-members">{{ slice.members | join(' · ') }}</small>
+                  {% endif %}
+                </span>
+                <span class="donut-legend-value">{{ slice.value | money }}</span>
+                <span class="donut-legend-share">{{ (slice.share * 100) | num(1) }}%</span>
+              </li>
+            {% endfor %}
+          {% else %}
+            <li class="empty">Sin posiciones abiertas para repartir.</li>
+          {% endif %}
+        </ul>
+      {% endfor %}
+    </div>
+  </div>
+
+  <figcaption class="donut-caption">
+    <fieldset class="donut-modes">
+      <legend class="visually-hidden">Criterio de reparto</legend>
+      {% for mode, mode_label in modes %}
+        <label class="donut-mode">
+          <input type="radio"
+                 name="donut-mode"
+                 value="{{ mode }}"
+                 {% if loop.first %}checked{% endif %}>
+          <span>{{ mode_label }}</span>
+        </label>
+      {% endfor %}
+    </fieldset>
+  </figcaption>
+
+  {#- Same treatment as the sparkline: the wrapper clips, the table keeps its
+      semantics. One table per mode, and the hidden ones leave the
+      accessibility tree with their `<g>`. -#}
+  {% for mode, mode_label in modes %}
+    {% set dn = donuts[mode] %}
+    {% if dn %}
+      <div class="visually-hidden donut-table" data-mode="{{ mode }}">
+        <table>
+          <caption>Reparto de la cartera {{ mode_label | lower }}, {{ dn.total | money }} en total.</caption>
+          {% set has_members = dn.slices | map(attribute='members') | select | list | length > 0 %}
+          <thead>
+            <tr>
+              <th scope="col">Categoría</th>
+              {% if has_members %}<th scope="col">Acciones</th>{% endif %}
+              <th scope="col">Valor</th>
+              <th scope="col">Participación</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for slice in dn.slices %}
+              <tr>
+                <th scope="row">{{ slice.label }}</th>
+                {% if has_members %}<td>{{ slice.members | join(', ') or '—' }}</td>{% endif %}
+                <td>{{ slice.value | money }}</td>
+                <td>{{ (slice.share * 100) | num(1) }}%</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  {% endfor %}
+</figure>
+{% endmacro %}

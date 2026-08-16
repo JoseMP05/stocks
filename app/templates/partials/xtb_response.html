@@ -1,0 +1,17 @@
+{#
+  Response wrapper for every write to the XTB panel.
+
+  The panel swaps into #xtb, carrying its own error line. Always a 200: htmx
+  discards the body of a 4xx, so a failed upload reported as a status code
+  would vanish without a trace.
+
+  The watchlist rides along as an out-of-band swap, and that is what makes an
+  import read as one action — the rail on the left updates in the same
+  response, so the panel never claims to have synced something the sidebar
+  still shows the old way.
+#}
+{% include "partials/xtb_dashboard.html" %}
+
+<div id="watchlist" hx-swap-oob="true">
+  {% include "partials/watchlist.html" %}
+</div>

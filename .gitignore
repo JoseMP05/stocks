@@ -13,8 +13,17 @@ venv/
 
 # Personal data — positions, API keys and cached results never get committed
 data/stocks_config.json
+data/stocks_config.backup.json
 data/settings.json
 data/last_results.json
+data/xtb_portfolio.json
+
+# Broker exports. Account number, every trade and every cash movement — the
+# most sensitive file in the project, and the one most likely to be dropped
+# into data/ without thinking about it.
+data/*.xlsx
+data/*.xls
+data/*.csv
 
 # Legacy generated reports
 stock_report_*.html
