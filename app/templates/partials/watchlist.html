@@ -3,13 +3,32 @@
 {% else %}
 <ul class="ticker-list">
   {% for item in watchlist %}
-  <li class="ticker-item{% if item.position %} is-holding{% endif %}">
+  <li
+    class="ticker-item{% if item.position %} is-holding{% endif %}{% if not item.active %} is-paused{% endif %}"
+  >
     <div class="ticker-head">
       <span class="sym">{{ item.ticker }}</span>
+      {#- The paused state is spelled out in the note, not carried by the
+          dimming alone: colour is not available to a screen reader, and the
+          button label reads the same either way once it says "Activar". -#}
+      <button
+        type="button"
+        class="btn btn-quiet"
+        hx-post="/watchlist/{{ item.ticker }}/active"
+        hx-vals='{"active": "{{ 0 if item.active else 1 }}"}'
+        hx-target="#watchlist"
+        hx-swap="innerHTML"
+      >
+        {{ "Pausar" if item.active else "Activar" }}
+        <span class="visually-hidden">
+          {{ item.ticker }}{{ " en el análisis" if item.active else "" }}</span
+        >
+      </button>
       <span class="note">
         {% if item.position %} {{ item.position.shares | num(2) }} acciones ·
         costo {{ item.position.avg_cost | money }} {% else %} solo seguimiento
-        {% endif %}
+        {% endif %} {% if not item.active %} · en pausa, fuera del análisis {%
+        endif %}
       </span>
     </div>
 

@@ -179,13 +179,36 @@ def edit_ticker(
     invested: str = Form(default=""),
     shares: str = Form(default=""),
 ) -> HTMLResponse:
+    # The form carries the position and nothing else, so everything the form
+    # does not ask about is read off the stored item. Rebuilding from defaults
+    # instead would quietly reset it: an "xtb" ticker would turn "manual", and
+    # a paused one would come back to life on a price correction.
+    current = next(
+        (w for w in storage.load_watchlist().watchlist if w.ticker == ticker.upper()),
+        None,
+    )
     try:
         item = WatchlistItem(
-            ticker=ticker, position=_parse_position(avg_cost, invested, shares)
+            ticker=ticker,
+            position=_parse_position(avg_cost, invested, shares),
+            source=current.source if current else "manual",
+            active=current.active if current else True,
         )
     except PositionInputError as exc:
         return _watchlist_response(request, error=f"{ticker.upper()}: {exc}")
     storage.update_ticker(ticker, item)
+    return _watchlist_response(request)
+
+
+@app.post("/watchlist/{ticker}/active", response_class=HTMLResponse)
+def toggle_ticker(request: Request, ticker: str, active: str = Form(default="")) -> HTMLResponse:
+    """Pause or resume a ticker without touching its position.
+
+    The desired state travels in the form rather than being flipped server-side:
+    a double click, or two tabs open on the same watchlist, then converges on
+    what the user saw instead of toggling twice.
+    """
+    storage.set_ticker_active(ticker, active == "1")
     return _watchlist_response(request)
 
 

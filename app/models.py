@@ -43,6 +43,14 @@ class WatchlistItem(BaseModel):
     # config file — the same hazard AnalysisResult documents below, but
     # silent and total.
     source: Literal["manual", "xtb"] = "manual"
+    # Paused tickers stay in the watchlist — with their position intact — but
+    # are skipped by the analysis run. It is the non-destructive way to shrink
+    # a run down to the tickers being studied right now.
+    #
+    # Defaulted for the same reason as `source`: a required field here would
+    # make every pre-existing config file fail validation, and `load_watchlist`
+    # answers a ValidationError with an empty watchlist.
+    active: bool = True
 
     @field_validator("ticker")
     @classmethod

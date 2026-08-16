@@ -3,6 +3,10 @@
 {% else %}
   <p class="run-meta">Última medición: {{ run.generated_at }}</p>
 
+  {% if not run.results and not run.failures %}
+    <p class="empty">No hay acciones activas para analizar. Reactivá alguna desde la watchlist.</p>
+  {% endif %}
+
   {% if run.failures %}
     <ul class="failures" aria-label="Tickers que fallaron">
       {% for failure in run.failures %}

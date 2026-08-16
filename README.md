@@ -54,6 +54,14 @@ La API key también se puede pasar por variable de entorno (`-e OPENROUTER_API_K
 
 Se administra desde la propia UI (agregar/editar/borrar tickers y posición). Los datos quedan en `data/stocks_config.json` (gitignored, contiene precios de compra reales). `data/stocks_config.example.json` es la plantilla versionada.
 
+### Pausar una acción
+
+Cada tarjeta de la watchlist tiene un botón **Pausar**. Una acción en pausa
+sigue en la lista con su posición intacta, pero queda afuera del análisis: no se
+descargan sus datos, no entra en el total del portafolio ni en el prompt del
+LLM. Sirve para concentrar una corrida en las acciones nuevas que estás mirando
+sin borrar las que ya venís siguiendo. **Activar** la vuelve a incluir.
+
 ## Interpretación con IA (opcional)
 
 Desde el ⚙ de la UI configurás proveedor, modelo y API key. Por defecto viene configurado **OpenRouter**, que cubre modelos de todos los proveedores con una sola key:
@@ -119,6 +127,7 @@ a ser la fuente de verdad de los tickers que reporta:
 | Ticker cargado a mano que el broker no reporta | queda intacto |
 | Ticker que vino de una importación previa y ya no está | queda en seguimiento, sin posición |
 | Posición corta, o símbolo sin precio | se omite y se informa |
+| Ticker en pausa | se actualiza, pero sigue en pausa |
 
 **Nunca se borra un ticker.** Antes de cada escritura se guarda
 `data/stocks_config.backup.json`, el panel lista exactamente qué cambió, y hay un
@@ -139,7 +148,6 @@ reales.
 
 ## To Do
 
-- Boton para desactivar ciertas acciones sin tener que removerlas
 - RAG de contenido sobre finanzas y entrega de resultados
 - El Llm está teniendo en cuenta las noticias?
 - Curva de valor de mercado histórico (requiere precios diarios de cada ticker

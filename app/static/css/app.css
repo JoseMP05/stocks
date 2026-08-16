@@ -456,6 +456,19 @@
   .ticker-item.is-holding {
     border-inline-start: 2px solid var(--accent);
   }
+  /* Paused: still on the rail and still editable, just out of the next run.
+     Marked by a dashed edge and a quiet symbol rather than by fading the whole
+     card — dimming the note along with it would push the one piece of text
+     that says "en pausa" below contrast, exactly when it matters most. The
+     dashed edge also survives forced-colors, which drops background hints. */
+  .ticker-item.is-paused {
+    border-inline-start: 2px dashed var(--border);
+  }
+  .ticker-item.is-paused .sym {
+    color: var(--ink-quiet);
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+  }
   .ticker-head {
     display: flex;
     flex-wrap: wrap;

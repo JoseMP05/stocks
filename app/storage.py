@@ -79,6 +79,16 @@ def update_ticker(ticker: str, item: WatchlistItem) -> Watchlist:
     return watchlist
 
 
+def set_ticker_active(ticker: str, active: bool) -> Watchlist:
+    """Pause or resume a ticker, leaving everything else about it untouched."""
+    watchlist = load_watchlist()
+    for item in watchlist.watchlist:
+        if item.ticker == ticker.upper():
+            item.active = active
+    save_watchlist(watchlist)
+    return watchlist
+
+
 def remove_ticker(ticker: str) -> Watchlist:
     watchlist = load_watchlist()
     watchlist.watchlist = [w for w in watchlist.watchlist if w.ticker != ticker.upper()]

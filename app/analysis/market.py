@@ -331,13 +331,18 @@ def _summarize_portfolio(results: list[AnalysisResult]) -> PortfolioSummary | No
 
 
 def run_analysis(items: list[WatchlistItem]) -> AnalysisRun:
-    """Analyze the whole watchlist, fetching tickers concurrently.
+    """Analyze the active watchlist, fetching tickers concurrently.
 
     yfinance blocks on network I/O, so a thread pool turns a sequential wait
     into a near-constant one. Watchlist order is preserved in the output.
+
+    Paused tickers are dropped here rather than at the caller: this is the one
+    place every run funnels through, so filtering here is what guarantees a
+    paused ticker never reaches the network, the portfolio total or the prompt.
     """
     results: list[AnalysisResult] = []
     failures: list[FailedTicker] = []
+    items = [item for item in items if item.active]
 
     if items:
         workers = min(MAX_FETCH_WORKERS, len(items))

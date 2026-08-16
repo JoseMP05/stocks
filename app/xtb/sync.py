@@ -105,6 +105,10 @@ def build_sync_plan(current: Watchlist, snapshot: XtbSnapshot) -> SyncPlan:
                     ticker=item.ticker,
                     position=_position_for(holding),
                     source="xtb",
+                    # Pausing is a decision about what to study, not about what
+                    # is held. An import corrects the numbers; it does not put a
+                    # paused ticker back into the run behind the user's back.
+                    active=item.active,
                 )
             )
             detail = f"precio de compra {holding.open_price:,.2f}"
@@ -116,7 +120,11 @@ def build_sync_plan(current: Watchlist, snapshot: XtbSnapshot) -> SyncPlan:
         if item.source == "xtb" and item.position is not None:
             # Held through a previous import, gone from this one. Almost
             # certainly sold — keep watching it, stop claiming a position.
-            items.append(WatchlistItem(ticker=item.ticker, position=None, source="manual"))
+            items.append(
+                WatchlistItem(
+                    ticker=item.ticker, position=None, source="manual", active=item.active
+                )
+            )
             changes.append(
                 SyncChange(
                     ticker=item.ticker,
